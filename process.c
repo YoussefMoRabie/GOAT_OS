@@ -8,7 +8,7 @@ int main(int agrc, char * argv[])
     initClk();
     
     //TODO it needs to get the remaining time from somewhere
-    //remainingtime = ??;
+    //remainingtime = runtime "passed from args";
     while (remainingtime > 0)
     {
         // remainingtime = ??;
