@@ -12,10 +12,20 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include <stdlib.h>
+#include "process.h"
 typedef struct Node
 {
-    int *data;
+    process *data;
     struct Node *next;
 } Node;
+
+Node *newNode(process *data)
+{
+    Node *temp = (Node *)malloc(sizeof(Node));
+    temp->data = data;
+    temp->next = NULL;
+    return temp;
+}
 
 #endif
