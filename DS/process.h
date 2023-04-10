@@ -11,8 +11,15 @@
 
 #ifndef PROCESS_H
 #define PROCESS_H
-typedef struct process
 
+typedef enum SortingType{
+    Priority,
+    ArrivalTime,
+    RunningTime,
+    RemainingTime
+    }SortingType;
+
+typedef struct Process
 {
 
     int arrivalTime;
@@ -27,6 +34,6 @@ typedef struct process
 
     int memSize;
 
-}process;
+}Process;
 
 #endif

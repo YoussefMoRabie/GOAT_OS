@@ -16,11 +16,11 @@
 #include "process.h"
 typedef struct Node
 {
-    process *data;
+    Process *data;
     struct Node *next;
 } Node;
 
-Node *newNode(process *data)
+Node *newNode(Process *data)
 {
     Node *temp = (Node *)malloc(sizeof(Node));
     temp->data = data;
