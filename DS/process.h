@@ -32,8 +32,6 @@ typedef struct Process
 
     int id;
 
-    int memSize;
-
 }Process;
 
 #endif

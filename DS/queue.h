@@ -54,7 +54,7 @@ void InsertAccordingTo(struct Queue *q, struct Process *data, SortingType sortin
     {
         q->head = q->tail = temp;
     }
-    else if (sortingType == SortingType::Priority)
+    else if (sortingType == Priority)
     {
         if (q->head->data->priority > temp->data->priority)
         {
@@ -81,7 +81,7 @@ void InsertAccordingTo(struct Queue *q, struct Process *data, SortingType sortin
             }
         }
     }
-    else if (sortingType == SortingType::ArrivalTime)
+    else if (sortingType == ArrivalTime)
     {
         if (q->head->data->arrivalTime > temp->data->arrivalTime)
         {
@@ -108,7 +108,7 @@ void InsertAccordingTo(struct Queue *q, struct Process *data, SortingType sortin
             }
         }
     }
-    else if (sortingType == SortingType::RemainingTime)
+    else if (sortingType == RemainingTime)
     {
         if (q->head->data->remainingTime > temp->data->remainingTime)
         {
@@ -135,7 +135,7 @@ void InsertAccordingTo(struct Queue *q, struct Process *data, SortingType sortin
             }
         }
     }
-    else if (sortingType == SortingType::RunningTime)
+    else if (sortingType == RunningTime)
     {
         if (q->head->data->runningTime > temp->data->runningTime)
         {
@@ -186,7 +186,7 @@ Process *front(Queue *q)
     return q->head->data;
 }
 
-bool isEmpty(Queue *q) { return (q->size == 0); }
+int isEmpty(Queue *q) { return (q->size == 0); }
 
 int size_queue(Queue *q) { return q->size; }
 
