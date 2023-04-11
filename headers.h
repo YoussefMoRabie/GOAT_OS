@@ -17,8 +17,27 @@ typedef short bool;
 #define false 0
 
 #define SHKEY 300
+#define RQ_SH 450
 
+int RQ_shmid;
 
+void init_ReadyQ(){
+    int shid=shmget(IPC_PRIVATE,sizeof(struct Queue),IPC_CREAT | 0644);
+    if(shid ==-1){
+        perror("Error Creating Ready Queue shared memory!\n");
+        exit(-1);
+    }
+    RQ_shmid=shid;
+}
+
+Queue *attach_RQ(){
+    Queue *RQ_addr= shmat(RQ_shmid,(void *)0,0);
+    if (RQ_addr==(void *)-1){
+        perror("Error in attaching\n");
+        exit(-1);
+    }
+    return RQ_addr;
+}
 ///==============================
 //don't mess with this variable//
 int * shmaddr;                 //
