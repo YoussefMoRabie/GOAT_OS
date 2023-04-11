@@ -8,6 +8,8 @@ int main(int argc, char *argv[])
     Queue process_queue;
 
     signal(SIGINT, clearResources);
+    init_ReadyQ();
+    Queue *RQ_addr= attach_RQ();
     // TODO Initialization
     // 1. Read the input files.
     FILE *ptr = fopen("processes.txt", "r");
