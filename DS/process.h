@@ -12,12 +12,10 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-typedef enum SortingType{
-    Priority,
-    ArrivalTime,
-    RunningTime,
-    RemainingTime
-    }SortingType;
+typedef enum pState{
+    Ready,
+    Running,
+}pState;
 
 typedef struct Process
 {
@@ -29,6 +27,8 @@ typedef struct Process
     int runningTime;
 
     int remainingTime;
+
+    pState p_state;
 
     int id;
 

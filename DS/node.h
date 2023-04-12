@@ -17,14 +17,16 @@
 typedef struct Node
 {
     Process *data;
+    int priority;
     struct Node *next;
 } Node;
 
-Node *newNode(Process *data)
+Node *newNode(Process *data, int pri)
 {
     Node *temp = (Node *)malloc(sizeof(Node));
     temp->data = data;
     temp->next = NULL;
+    temp->priority=pri;
     return temp;
 }
 

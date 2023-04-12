@@ -27,7 +27,7 @@ void SRTN(){
     if(curProc->remainingTime > front(RQ)->remainingTime){
         //context switch
         kill(curProc->id,SIGSTOP);
-        InsertAccordingTo(RQ,curProc,RemainingTime);
+        InsertWithPriority(RQ,curProc,curProc->remainingTime);
         curProc=dequeue(RQ);
     }
     if (curProc->remainingTime==curProc->runningTime)

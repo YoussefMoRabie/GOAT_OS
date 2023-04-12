@@ -34,7 +34,7 @@ Queue *Queue_init()
 
 void enqueue(Queue *q, Process *data)
 {
-    Node *temp = newNode(data);
+    Node *temp = newNode(data,10);
     if (q->tail == NULL)
     {
         q->head = q->tail = temp;
@@ -47,16 +47,17 @@ void enqueue(Queue *q, Process *data)
     return;
 }
 
-void InsertAccordingTo(struct Queue *q, struct Process *data, SortingType sortingType)
+
+void InsertWithPriority(struct Queue *q, struct Process *data, int pri)
 {
-    Node *temp = newNode(data);
+    Node *temp = newNode(data,pri);
     if (q->tail == NULL)
     {
         q->head = q->tail = temp;
     }
-    else if (sortingType == Priority)
+    else 
     {
-        if (q->head->data->priority > temp->data->priority)
+        if (q->head->priority > temp->priority)
         {
             temp->next = q->head;
             q->head = temp;
@@ -66,87 +67,6 @@ void InsertAccordingTo(struct Queue *q, struct Process *data, SortingType sortin
             struct Node *next = q->head;
             while (next->next != NULL &&
                    next->next->data->priority < temp->data->priority)
-            {
-                next = next->next;
-            }
-            if (next->next != NULL)
-            {
-                temp->next = next->next;
-                next->next = temp;
-            }
-            else
-            {
-                next->next = temp;
-                q->tail = temp;
-            }
-        }
-    }
-    else if (sortingType == ArrivalTime)
-    {
-        if (q->head->data->arrivalTime > temp->data->arrivalTime)
-        {
-            temp->next = q->head;
-            q->head = temp;
-        }
-        else
-        {
-            struct Node *next = q->head;
-            while (next->next != NULL &&
-                   next->next->data->arrivalTime < temp->data->arrivalTime)
-            {
-                next = next->next;
-            }
-            if (next->next != NULL)
-            {
-                temp->next = next->next;
-                next->next = temp;
-            }
-            else
-            {
-                next->next = temp;
-                q->tail = temp;
-            }
-        }
-    }
-    else if (sortingType == RemainingTime)
-    {
-        if (q->head->data->remainingTime > temp->data->remainingTime)
-        {
-            temp->next = q->head;
-            q->head = temp;
-        }
-        else
-        {
-            struct Node *next = q->head;
-            while (next->next != NULL &&
-                   next->next->data->remainingTime < temp->data->remainingTime)
-            {
-                next = next->next;
-            }
-            if (next->next != NULL)
-            {
-                temp->next = next->next;
-                next->next = temp;
-            }
-            else
-            {
-                next->next = temp;
-                q->tail = temp;
-            }
-        }
-    }
-    else if (sortingType == RunningTime)
-    {
-        if (q->head->data->runningTime > temp->data->runningTime)
-        {
-            temp->next = q->head;
-            q->head = temp;
-        }
-        else
-        {
-            struct Node *next = q->head;
-            while (next->next != NULL &&
-                   next->next->data->runningTime < temp->data->runningTime)
             {
                 next = next->next;
             }
