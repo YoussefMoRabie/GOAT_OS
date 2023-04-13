@@ -11,6 +11,7 @@ PROC_BUFF newProc;
 int msgBuf;
 int algoId;
 bool switched;
+bool new_arrive=false;
 
 
 void SRTN();
@@ -35,8 +36,9 @@ int main(int argc, char *argv[])
     TempCLK = getClk();
     while (true)
     {
-        if (getClk() != TempCLK)
+        if (getClk() != TempCLK || new_arrive)
         {
+            new_arrive=false;
             TempCLK = getClk();
             if (!(isEmpty(RQ) && curProc == NULL))
             {
@@ -49,6 +51,7 @@ int main(int argc, char *argv[])
 }
 
 void SRTN(){
+
     if (curProc == NULL)
     {
         curProc = dequeue(RQ);
@@ -56,6 +59,8 @@ void SRTN(){
     }
     else
     {
+        if (curProc->remainingTime==0)
+            return;
         curProc->remainingTime--;
     }
     
@@ -150,6 +155,7 @@ void Termination_SIG(int signnum)
 
 void newProc_arrive(int signnum)
 {
+    new_arrive=true;
     int rcv = msgrcv(msgBuf, &newProc, sizeof(newProc.proc), 1, !IPC_NOWAIT);
     if (rcv == -1)
     {
@@ -165,6 +171,9 @@ void newProc_arrive(int signnum)
     p->waitingTime = newProc.proc.waitingTime;
 
     // to be modified based on algo_id
+    // printf("test\n");
     InsertWithPriority(RQ, p,p->remainingTime);
-    SRTN();
+    // printf("test %d\n",RQ->head->data->id);
+
+    // SRTN();
 }
