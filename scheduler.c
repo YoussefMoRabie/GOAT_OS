@@ -2,7 +2,7 @@
 
 void Termination_SIG(int signnum);
 void newProc_arrive(int signum);
-
+void SRTN_start();
 Process *curProc;
 Queue *RQ;
 int TempCLK;
@@ -12,6 +12,7 @@ int msgBuf;
 int algoId;
 bool switched;
 bool new_arrive=false;
+bool cur_terminated=false;
 
 
 void SRTN();
@@ -34,11 +35,18 @@ int main(int argc, char *argv[])
     // upon termination release the clock resources.
     // remove this later
     TempCLK = getClk();
-    while (true)
+    SRTN_start();
+
+    destroyClk(true);
+}
+
+void SRTN_start(){
+     while (true)
     {
-        if (getClk() != TempCLK || new_arrive)
+        if (getClk() != TempCLK || new_arrive ||cur_terminated)
         {
             new_arrive=false;
+            cur_terminated=false;
             TempCLK = getClk();
             if (!(isEmpty(RQ) && curProc == NULL))
             {
@@ -46,10 +54,7 @@ int main(int argc, char *argv[])
             }
         }
     }
-
-    destroyClk(true);
 }
-
 void SRTN(){
 
     if (curProc == NULL)
@@ -61,6 +66,7 @@ void SRTN(){
     {
         if (curProc->remainingTime==0)
             return;
+        if(!new_arrive)
         curProc->remainingTime--;
     }
     
@@ -150,18 +156,24 @@ void Termination_SIG(int signnum)
     curProc=NULL;
     switched=true;
     //call the algo one more time
-    SRTN();
+    cur_terminated=true;
+    // SRTN();
 }
 
 void newProc_arrive(int signnum)
 {
     new_arrive=true;
+    struct msqid_ds stat;
+    int i;
+    do{
     int rcv = msgrcv(msgBuf, &newProc, sizeof(newProc.proc), 1, !IPC_NOWAIT);
     if (rcv == -1)
     {
         perror("Error in reveive\n");
         exit(-1);
     }
+    msgctl(msgBuf, IPC_STAT,&stat);
+    i=stat.msg_qnum;
     Process *p = (Process *)malloc(sizeof(Process));
     p->arrivalTime = newProc.proc.arrivalTime;
     p->id = newProc.proc.id;
@@ -173,6 +185,7 @@ void newProc_arrive(int signnum)
     // to be modified based on algo_id
     // printf("test\n");
     InsertWithPriority(RQ, p,p->remainingTime);
+    } while(i);
     // printf("test %d\n",RQ->head->data->id);
 
     // SRTN();
