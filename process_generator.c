@@ -1,6 +1,8 @@
 #include "headers.h"
 
 void clearResources(int);
+int msgBuf;
+PROC_BUFF newProc;
 
 int main(int argc, char *argv[])
 {
@@ -8,8 +10,9 @@ int main(int argc, char *argv[])
     Queue process_queue;
 
     signal(SIGINT, clearResources);
-    init_ReadyQ();
-    Queue *RQ_addr= attach_RQ();
+     msgBuf=init_buff();
+    newProc.m_type=1;
+
     // TODO Initialization
     // 1. Read the input files.
     FILE *ptr = fopen("processes.txt", "r");
@@ -31,6 +34,7 @@ int main(int argc, char *argv[])
         p->id = atoi(p_id);
         p->priority = atoi(p_pri);
         p->runningTime = atoi(p_run);
+        p->remainingTime=p->runningTime;
         enqueue(&process_queue, p);
     }
 
@@ -43,12 +47,14 @@ int main(int argc, char *argv[])
     }
     // 3. Initiate and create the scheduler and clock processes.
     int sch_pid = fork();
-    if (sch_pid == 0)
-        execlp("./sch", "./sch", &algo_id, NULL);
+    if (sch_pid == 0){
+
+            execlp("./scheduler.out", "./scheduler.out",&algo_id, NULL);
+            }
 
     int clk_pid = fork();
     if (clk_pid == 0)
-        execlp("./c", "./c", NULL);
+        execlp("./clk.out", "./clk.out", NULL);
 
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
@@ -69,8 +75,25 @@ int main(int argc, char *argv[])
             current_time = getClk();
             printf("current time is %d\n", current_time);
         }
-        while(getClk() == front(&process_queue)->arrivalTime)
+        while(!isEmpty(&process_queue) && getClk() == front(&process_queue)->arrivalTime)
         {
+            Process* toSnd=dequeue(&process_queue);
+            newProc.proc.id=toSnd->id;
+            newProc.proc.arrivalTime=toSnd->arrivalTime;
+            newProc.proc.p_state=toSnd->p_state;
+            newProc.proc.lastPreempt=toSnd->lastPreempt;
+            newProc.proc.priority=toSnd->priority;
+            newProc.proc.remainingTime=toSnd->remainingTime;
+            newProc.proc.runningTime=toSnd->runningTime;
+            newProc.proc.waitingTime=toSnd->waitingTime;
+
+            int snd=msgsnd(msgBuf,&newProc,sizeof(newProc.proc),!IPC_NOWAIT);
+            if (snd==-1)
+            {
+                perror("Error in Send!\n");
+                exit(-1);
+            }
+            kill(sch_pid,SIGUSR2);
             //dequeue and send the top process to the scheduler's ready queue 
         }
     }
@@ -81,5 +104,6 @@ int main(int argc, char *argv[])
 void clearResources(int signum)
 {
     // TODO Clears all resources in case of interruption
+    msgctl(msgBuf, IPC_RMID, (struct msqid_ds *)0);
     kill(getpid(), 9);
 }

@@ -26,9 +26,15 @@ typedef struct Process
 
     int runningTime;
 
+    int waitingTime;
+
+    int lastPreempt;
+
     int remainingTime;
 
     pState p_state;
+
+    int pid;
 
     int id;
 

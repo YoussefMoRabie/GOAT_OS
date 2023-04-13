@@ -17,27 +17,27 @@ typedef short bool;
 #define false 0
 
 #define SHKEY 300
-#define RQ_SH 450
+#define BUFF_KEY 450
+#define P_SCH_SHkey 32
 
-int RQ_shmid;
+typedef struct proc_buff{
+    long m_type;
+    Process proc;
+} PROC_BUFF;
 
-void init_ReadyQ(){
-    int shid=shmget(IPC_PRIVATE,sizeof(struct Queue),IPC_CREAT | 0644);
-    if(shid ==-1){
-        perror("Error Creating Ready Queue shared memory!\n");
+int init_buff(){
+    key_t kid=BUFF_KEY;
+    int msgid=msgget(kid,0666 | IPC_CREAT);
+    if(msgid==-1)
+    {
+        perror("Error in msgget\n");
         exit(-1);
     }
-    RQ_shmid=shid;
+    return msgid;
 }
+int WTA;
+int WaitingTime;
 
-Queue *attach_RQ(){
-    Queue *RQ_addr= shmat(RQ_shmid,(void *)0,0);
-    if (RQ_addr==(void *)-1){
-        perror("Error in attaching\n");
-        exit(-1);
-    }
-    return RQ_addr;
-}
 ///==============================
 //don't mess with this variable//
 int * shmaddr;                 //

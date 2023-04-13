@@ -93,6 +93,8 @@ Process *dequeue(Queue *q)
 
     Node *temp = q->head;
     q->head = q->head->next;
+    if (q->size==1)
+        q->tail=q->head;
     q->size -= 1;
 
     return temp->data;
