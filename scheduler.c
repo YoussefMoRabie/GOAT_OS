@@ -16,6 +16,7 @@ bool cur_terminated=false;
 
 
 void SRTN();
+void HPF();
 
 int main(int argc, char *argv[])
 {
@@ -59,7 +60,6 @@ void SRTN(){
     if (curProc == NULL)
     {
         curProc = dequeue(RQ);
-
     }
     else
     {
@@ -135,6 +135,10 @@ void SRTN(){
     // printf("\nTest\n");
 }
 
+void HPF(){
+
+}
+
 void Termination_SIG(int signnum)
 {
     int TA = getClk() - curProc->arrivalTime;
@@ -182,9 +186,17 @@ void newProc_arrive(int signnum)
     p->runningTime = newProc.proc.runningTime;
     p->waitingTime = newProc.proc.waitingTime;
 
-    // to be modified based on algo_id
+    // to be modified based on algoId
     // printf("test\n");
-    InsertWithPriority(RQ, p,p->remainingTime);
+    if (algoId != '1') {
+      InsertWithPriority(RQ, p, p->remainingTime);
+    } else if (algoId != '2') {
+      InsertWithPriority(RQ, p, p->priority);
+
+    } else {
+      // insertion for RR
+    }
+    
     } while(i);
     // printf("test %d\n",RQ->head->data->id);
 
