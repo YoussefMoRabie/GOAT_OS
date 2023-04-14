@@ -2,14 +2,14 @@
 
 void Termination_SIG(int signnum);
 void newProc_arrive(int signum);
-void SRTN_start();
+void algo_start();
 Process *curProc;
 Queue *RQ;
 int TempCLK;
-bool IS_preempted;
 PROC_BUFF newProc;
 int msgBuf;
 int algoId;
+void (*algo_func)();
 bool switched;
 bool new_arrive=false;
 bool cur_terminated=false;
@@ -36,39 +36,56 @@ int main(int argc, char *argv[])
     // upon termination release the clock resources.
     // remove this later
     TempCLK = getClk();
-     SRTN_start();
+    algo_start();
 
     destroyClk(true);
 }
 
-void SRTN_start(){
-     while (true)
+void algo_start(){
+    //determine which algorithm to call
+    switch (algoId)
+    {
+    case 1:
+        algo_func=&SRTN;
+        break;
+
+    default:
+        break;
+    }
+    //looping every clk unit, if a new process arrives or a process terminates
+    while (true)
     {
         if (getClk() != TempCLK || new_arrive ||cur_terminated)
         {
             cur_terminated=false;
             TempCLK = getClk();
+            // if there is no currently running process nor a ready one
             if (!(isEmpty(RQ) && curProc == NULL))
             {
-                SRTN();
+                algo_func();
             }
         }
     }
 }
 void SRTN(){
 
+    //if there is no currently process, pick the head of the ready queue
     if (curProc == NULL)
     {
         curProc = dequeue(RQ);
     }
     else
-    {
-        if (curProc->remainingTime==0)
-            return;
-        if(!new_arrive)
+    {   //else you update the current process params
+
+        /* TO BE REMOVED LATER  
+        if (curProc->remainingTime==0) 
+              return;
+        */
+
+        if(!new_arrive) //it doesn't update if a new process arrived cuz it is already updated
         curProc->remainingTime--;
     }
-    new_arrive=false;
+    new_arrive=false; //reset the flag
 
     if (!isEmpty(RQ) && curProc && curProc->remainingTime > front(RQ)->remainingTime)
     {
@@ -119,7 +136,8 @@ void SRTN(){
     else
     {
         if (switched )
-        {
+        {   
+            //resume the process if there is context switch
             switched=false;
             curProc->waitingTime += getClk() - curProc->lastPreempt;
             printf("At time %d process %d resumed arr %d total %d remain %d wait %d\n",
@@ -132,7 +150,6 @@ void SRTN(){
             kill(curProc->pid, SIGCONT);
         }
     }
-    // printf("\nTest\n");
 }
 
 void HPF(){

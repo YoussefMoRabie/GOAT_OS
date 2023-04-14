@@ -23,7 +23,7 @@ int main(int argc, char * argv[])
                 cont=false;
             }else
             remainingtime--;
-            printf("Proc: remaining: %d\n",remainingtime);
+            // printf("Proc: remaining: %d\n",remainingtime);
         }
         // remainingtime = ??;
     }
