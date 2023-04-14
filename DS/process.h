@@ -32,6 +32,8 @@ typedef struct Process
 
     int remainingTime;
 
+    int lastResume;
+
     pState p_state;
 
     int pid;

@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     // upon termination release the clock resources.
     // remove this later
     TempCLK = getClk();
-    SRTN_start();
+     SRTN_start();
 
     destroyClk(true);
 }
@@ -45,7 +45,6 @@ void SRTN_start(){
     {
         if (getClk() != TempCLK || new_arrive ||cur_terminated)
         {
-            new_arrive=false;
             cur_terminated=false;
             TempCLK = getClk();
             if (!(isEmpty(RQ) && curProc == NULL))
@@ -69,7 +68,8 @@ void SRTN(){
         if(!new_arrive)
         curProc->remainingTime--;
     }
-    
+    new_arrive=false;
+
     if (!isEmpty(RQ) && curProc && curProc->remainingTime > front(RQ)->remainingTime)
     {
         // context switch
