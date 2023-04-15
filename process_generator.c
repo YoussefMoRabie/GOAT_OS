@@ -58,6 +58,10 @@ int main(int argc, char *argv[])
         sprintf(proc_count, "%d", process_count);
         execlp("./scheduler.out", "./scheduler.out", &algo_id, proc_count, NULL);
     }
+    else {
+        printf("%d",sch_pid);
+        printf("\n");
+    }
 
     clk_pid = fork();
     if (clk_pid == 0)
@@ -111,6 +115,7 @@ int main(int argc, char *argv[])
     *sim_state = 1;
     int stat;
     waitpid(sch_pid, &stat, 0);
+    
     // clear all resources
     kill(getpid(),SIGINT);
 }
