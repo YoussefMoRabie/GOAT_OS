@@ -63,6 +63,9 @@ void algo_start()
     case 1:
         algo_func = &SRTN;
         break;
+    case 2:
+        algo_func = &HPF;
+        break;
 
     default:
         break;
@@ -96,7 +99,7 @@ void SRTN()
     {
         curProc = dequeue(RQ);
     }
-    else
+    else if (!new_arrive)
     { // else you update the current process params
 
         /* TO BE REMOVED LATER
@@ -104,7 +107,7 @@ void SRTN()
               return;
         */
 
-        if (!new_arrive) // it doesn't update if a new process arrived cuz it is already updated
+         // it doesn't update if a new process arrived cuz it is already updated
             curProc->remainingTime--;
     }
     new_arrive = false; // reset the flag
@@ -141,6 +144,7 @@ void SRTN()
         curProc = dequeue(RQ);
         curProc->p_state = Running;
     }
+    
     if (curProc && curProc->remainingTime == curProc->runningTime)
     {
         // create new process and run it
@@ -211,6 +215,84 @@ void SRTN()
 
 void HPF()
 {
+    if(new_arrive&& curProc != NULL)
+    {
+        new_arrive=false;
+        return;
+    }
+    // if there is no currently process, pick the head of the ready queue
+    if (curProc == NULL)
+    {
+        curProc = dequeue(RQ);
+    }
+    else
+    { // else you update the current process params
+        curProc->remainingTime--;
+    }
+
+    if (curProc && curProc->remainingTime == curProc->runningTime)
+    {
+        //create new process and run it
+        switched = false;
+        int pid = fork();
+        if (pid == 0)
+        {
+            char t[8];
+            sprintf(t, "%d", curProc->remainingTime);
+            if (execlp("./process.out", "./process.out", t, NULL) == -1)
+            {
+                perror("error in runnign proc\n");
+            }
+        }
+        curProc->pid = pid;
+        curProc->waitingTime += getClk() - curProc->arrivalTime;
+        curProc->p_state = Running;
+        // for testing
+        printf("At time %d process %d started arr %d total %d remain %d wait %d\n",
+               getClk(),
+               curProc->id,
+               curProc->arrivalTime,
+               curProc->runningTime,
+               curProc->remainingTime,
+               curProc->waitingTime);
+
+        // output to the scheduler.log file
+        log_file = fopen("scheduler.log", "a");
+        fprintf(log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n",
+                getClk(),
+                curProc->id,
+                curProc->arrivalTime,
+                curProc->runningTime,
+                curProc->remainingTime,
+                curProc->waitingTime);
+        fclose(log_file);
+    }
+    else if (switched)
+        {
+            // resume the process if there is context switch
+            switched = false;
+            curProc->waitingTime += getClk() - curProc->lastPreempt;
+            // for testing
+            printf("At time %d process %d resumed arr %d total %d remain %d wait %d\n",
+                   getClk(),
+                   curProc->id,
+                   curProc->arrivalTime,
+                   curProc->runningTime,
+                   curProc->remainingTime,
+                   curProc->waitingTime);
+
+            // output to the scheduler.log file
+            log_file = fopen("scheduler.log", "a");
+            fprintf(log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n",
+                    getClk(),
+                    curProc->id,
+                    curProc->arrivalTime,
+                    curProc->runningTime,
+                    curProc->remainingTime,
+                    curProc->waitingTime);
+            fclose(log_file);
+            kill(curProc->pid, SIGCONT);
+        }
 }
 
 void Termination_SIG(int signnum)
@@ -254,7 +336,7 @@ void Termination_SIG(int signnum)
 
 void newProc_arrive(int signnum)
 {
-    new_arrive = true;
+    new_arrive = true ; //&& ((algoId==1) || (algoId==2)&&(curProc==NULL));
     struct msqid_ds stat;
     int i;
     do
@@ -276,11 +358,11 @@ void newProc_arrive(int signnum)
         p->waitingTime = newProc.proc.waitingTime;
 
         // to be modified based on algoId
-        if (algoId != '1')
+        if (algoId == 1)
         {
             InsertWithPriority(RQ, p, p->remainingTime);
         }
-        else if (algoId != '2')
+        else if (algoId == 2)
         {
             InsertWithPriority(RQ, p, p->priority);
         }

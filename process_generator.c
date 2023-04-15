@@ -8,7 +8,7 @@ int sim_state_id;
 
 int main(int argc, char *argv[])
 {
-    Queue process_queue;
+    Queue process_queue = * Queue_init();
     signal(SIGINT, clearResources);
     sim_state_id = init_sim_state();
     int initial_state = 0;
