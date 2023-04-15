@@ -1,17 +1,21 @@
 #include "headers.h"
 
 void clearResources(int);
+int clk_pid, sch_pid;
 int msgBuf;
 PROC_BUFF newProc;
+int sim_state_id;
 
 int main(int argc, char *argv[])
 {
-    // to be replaced with queue
     Queue process_queue;
-
     signal(SIGINT, clearResources);
-     msgBuf=init_buff();
-    newProc.m_type=1;
+    sim_state_id = init_sim_state();
+    int initial_state = 0;
+    *sim_state = initial_state;
+    msgBuf = init_buff();
+    newProc.m_type = 1;
+    int process_count = 0; // the number of processes in the simulation, sent to the scheduler to create WTA_ARR accordingly
 
     // TODO Initialization
     // 1. Read the input files.
@@ -28,13 +32,14 @@ int main(int argc, char *argv[])
         // ignore comments
         if (p_id[0] == '#')
             continue;
-        printf("%d %d %d %d\n", atoi(p_id), atoi(p_arr), atoi(p_run), atoi(p_pri));
         Process *p = (Process *)malloc(sizeof(Process));
         p->arrivalTime = atoi(p_arr);
         p->id = atoi(p_id);
         p->priority = atoi(p_pri);
         p->runningTime = atoi(p_run);
-        p->remainingTime=p->runningTime;
+        p->remainingTime = p->runningTime;
+        p->p_state = Ready;
+        process_count++;
         enqueue(&process_queue, p);
     }
 
@@ -46,13 +51,15 @@ int main(int argc, char *argv[])
         scanf("%c", &algo_id);
     }
     // 3. Initiate and create the scheduler and clock processes.
-    int sch_pid = fork();
-    if (sch_pid == 0){
+    sch_pid = fork();
+    if (sch_pid == 0)
+    {
+        char proc_count[8];
+        sprintf(proc_count, "%d", process_count);
+        execlp("./scheduler.out", "./scheduler.out", &algo_id, proc_count, NULL);
+    }
 
-            execlp("./scheduler.out", "./scheduler.out",&algo_id, NULL);
-            }
-
-    int clk_pid = fork();
+    clk_pid = fork();
     if (clk_pid == 0)
         execlp("./clk.out", "./clk.out", NULL);
 
@@ -67,7 +74,7 @@ int main(int argc, char *argv[])
 
     // 6. Send the information to the scheduler at the appropriate time.
     int current_time = getClk();
-    while (!isEmpty(&process_queue) || 1) // to be replaced with queue !empty
+    while (!isEmpty(&process_queue))
     {
         // if the current time = the arrival of a process send it to the queue.
         if (current_time != getClk())
@@ -75,35 +82,42 @@ int main(int argc, char *argv[])
             current_time = getClk();
             printf("current time is %d\n", current_time);
         }
-        while(!isEmpty(&process_queue) && getClk() == front(&process_queue)->arrivalTime)
+        while (!isEmpty(&process_queue) && getClk() == front(&process_queue)->arrivalTime)
         {
-            Process* toSnd=dequeue(&process_queue);
-            newProc.proc.id=toSnd->id;
-            newProc.proc.arrivalTime=toSnd->arrivalTime;
-            newProc.proc.p_state=toSnd->p_state;
-            newProc.proc.lastPreempt=toSnd->lastPreempt;
-            newProc.proc.priority=toSnd->priority;
-            newProc.proc.remainingTime=toSnd->remainingTime;
-            newProc.proc.runningTime=toSnd->runningTime;
-            newProc.proc.waitingTime=toSnd->waitingTime;
+            // dequeue and send the top process to the scheduler's ready queue
+            Process *toSnd = dequeue(&process_queue);
+            newProc.proc.id = toSnd->id;
+            newProc.proc.arrivalTime = toSnd->arrivalTime;
+            newProc.proc.p_state = toSnd->p_state;
+            newProc.proc.priority = toSnd->priority;
+            newProc.proc.remainingTime = toSnd->remainingTime;
+            newProc.proc.runningTime = toSnd->runningTime;
+            newProc.proc.lastPreempt = 0;
+            newProc.proc.waitingTime = 0;
 
-            int snd=msgsnd(msgBuf,&newProc,sizeof(newProc.proc),!IPC_NOWAIT);
-            if (snd==-1)
+            int snd = msgsnd(msgBuf, &newProc, sizeof(newProc.proc), !IPC_NOWAIT);
+            if (snd == -1)
             {
                 perror("Error in Send!\n");
                 exit(-1);
             }
-            kill(sch_pid,SIGUSR2);
-            //dequeue and send the top process to the scheduler's ready queue 
+            kill(sch_pid, SIGUSR2);
         }
     }
-    // 7. Clear clock resources
-    destroyClk(true);
+    // 7. Clear clock resources 
+    // switch sim state to let the scheduler know that no more processes will be sent and wait for it to die before clearing IPCs
+    *sim_state = 1;
+    int stat;
+    waitpid(sch_pid, &stat, 0);
+    // clear all resources
+    kill(getpid(),9);
 }
 
 void clearResources(int signum)
 {
     // TODO Clears all resources in case of interruption
     msgctl(msgBuf, IPC_RMID, (struct msqid_ds *)0);
-    kill(getpid(), 9);
+    shmctl(sim_state_id, IPC_RMID, (struct shmid_ds *)0);
+    kill(clk_pid, SIGINT);
+    exit(0);
 }
