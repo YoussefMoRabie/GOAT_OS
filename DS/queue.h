@@ -66,7 +66,7 @@ void InsertWithPriority(struct Queue *q, struct Process *data, int pri)
         {
             struct Node *next = q->head;
             while (next->next != NULL &&
-                   next->next->data->priority < temp->data->priority)
+                   next->next->priority <= temp->priority)
             {
                 next = next->next;
             }

@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     int stat;
     waitpid(sch_pid, &stat, 0);
     // clear all resources
-    kill(getpid(),9);
+    kill(getpid(),SIGINT);
 }
 
 void clearResources(int signum)
