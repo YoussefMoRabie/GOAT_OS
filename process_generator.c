@@ -101,7 +101,9 @@ int main(int argc, char *argv[])
                 perror("Error in Send!\n");
                 exit(-1);
             }
-            kill(sch_pid, SIGUSR2);
+            //send the signal if this is the last process the generator will be sending this second
+            if(!(!isEmpty(&process_queue) && getClk() == front(&process_queue)->arrivalTime))
+                kill(sch_pid, SIGUSR2);
         }
     }
     // 7. Clear clock resources 
