@@ -4,6 +4,10 @@ void Termination_SIG(int signnum);
 void newProc_arrive(int signum);
 void algo_start();
 void output_performance();
+void write_in_logFile_start();
+void write_in_logFile_resume();
+void write_in_logFile_stop();
+
 Process *curProc;
 Queue *RQ;
 int TempCLK;
@@ -133,16 +137,7 @@ void SRTN()
                curProc->remainingTime,
                curProc->waitingTime);
 
-        // output to the scheduler.log file
-        log_file = fopen("scheduler.log", "a");
-        fprintf(log_file, "At time %d process %d stopped arr %d total %d remain %d wait %d\n",
-                getClk(),
-                curProc->id,
-                curProc->arrivalTime,
-                curProc->runningTime,
-                curProc->remainingTime,
-                curProc->waitingTime);
-        fclose(log_file);
+        write_in_logFile_stop();
 
         InsertWithPriority(RQ, curProc, curProc->remainingTime);
         curProc = dequeue(RQ);
@@ -176,15 +171,7 @@ void SRTN()
                curProc->waitingTime);
 
         // output to the scheduler.log file
-        log_file = fopen("scheduler.log", "a");
-        fprintf(log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n",
-                getClk(),
-                curProc->id,
-                curProc->arrivalTime,
-                curProc->runningTime,
-                curProc->remainingTime,
-                curProc->waitingTime);
-        fclose(log_file);
+        write_in_logFile_start();
     }
     else
     {
@@ -203,15 +190,8 @@ void SRTN()
                    curProc->waitingTime);
 
             // output to the scheduler.log file
-            log_file = fopen("scheduler.log", "a");
-            fprintf(log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n",
-                    getClk(),
-                    curProc->id,
-                    curProc->arrivalTime,
-                    curProc->runningTime,
-                    curProc->remainingTime,
-                    curProc->waitingTime);
-            fclose(log_file);
+           write_in_logFile_resume();
+           
             kill(curProc->pid, SIGCONT);
         }
     }
@@ -261,15 +241,7 @@ void HPF()
                curProc->waitingTime);
 
         // output to the scheduler.log file
-        log_file = fopen("scheduler.log", "a");
-        fprintf(log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n",
-                getClk(),
-                curProc->id,
-                curProc->arrivalTime,
-                curProc->runningTime,
-                curProc->remainingTime,
-                curProc->waitingTime);
-        fclose(log_file);
+        write_in_logFile_start();
     }
     else if (switched)
         {
@@ -286,15 +258,8 @@ void HPF()
                    curProc->waitingTime);
 
             // output to the scheduler.log file
-            log_file = fopen("scheduler.log", "a");
-            fprintf(log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n",
-                    getClk(),
-                    curProc->id,
-                    curProc->arrivalTime,
-                    curProc->runningTime,
-                    curProc->remainingTime,
-                    curProc->waitingTime);
-            fclose(log_file);
+            write_in_logFile_resume();
+
             kill(curProc->pid, SIGCONT);
         }
 }
@@ -334,15 +299,7 @@ if (!isEmpty(RQ) && curProc && getClk() - curProc->lastResume == Quantum)
                curProc->waitingTime);
 
         // output to the scheduler.log file
-        log_file = fopen("scheduler.log", "a");
-        fprintf(log_file, "At time %d process %d stopped arr %d total %d remain %d wait %d\n",
-                getClk(),
-                curProc->id,
-                curProc->arrivalTime,
-                curProc->runningTime,
-                curProc->remainingTime,
-                curProc->waitingTime);
-        fclose(log_file);
+        write_in_logFile_stop();
 
         enqueue(RQ, curProc);
         curProc = dequeue(RQ);
@@ -376,15 +333,7 @@ if (!isEmpty(RQ) && curProc && getClk() - curProc->lastResume == Quantum)
                curProc->waitingTime);
 
         // output to the scheduler.log file
-        log_file = fopen("scheduler.log", "a");
-        fprintf(log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n",
-                getClk(),
-                curProc->id,
-                curProc->arrivalTime,
-                curProc->runningTime,
-                curProc->remainingTime,
-                curProc->waitingTime);
-        fclose(log_file);
+        write_in_logFile_start();
     }
     else
     {
@@ -404,15 +353,8 @@ if (!isEmpty(RQ) && curProc && getClk() - curProc->lastResume == Quantum)
                    curProc->waitingTime);
 
             // output to the scheduler.log file
-            log_file = fopen("scheduler.log", "a");
-            fprintf(log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n",
-                    getClk(),
-                    curProc->id,
-                    curProc->arrivalTime,
-                    curProc->runningTime,
-                    curProc->remainingTime,
-                    curProc->waitingTime);
-            fclose(log_file);
+           write_in_logFile_resume();
+
             kill(curProc->pid, SIGCONT);
         }
     }
@@ -522,4 +464,42 @@ void output_performance()
     fprintf(perf, "Avg Waiting = %f\n", avg_wait);
     fprintf(perf, "Std WTA = %f\n", WTA_STD);
     fclose(perf);
+}
+
+void write_in_logFile_start(){
+// output to the scheduler.log file
+        log_file = fopen("scheduler.log", "a");
+        fprintf(log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n",
+                getClk(),
+                curProc->id,
+                curProc->arrivalTime,
+                curProc->runningTime,
+                curProc->remainingTime,
+                curProc->waitingTime);
+        fclose(log_file);
+}
+void write_in_logFile_stop(){
+    // output to the scheduler.log file
+        log_file = fopen("scheduler.log", "a");
+        fprintf(log_file, "At time %d process %d stopped arr %d total %d remain %d wait %d\n",
+                getClk(),
+                curProc->id,
+                curProc->arrivalTime,
+                curProc->runningTime,
+                curProc->remainingTime,
+                curProc->waitingTime);
+        fclose(log_file);
+}
+
+
+void write_in_logFile_resume(){
+ log_file = fopen("scheduler.log", "a");
+            fprintf(log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n",
+                    getClk(),
+                    curProc->id,
+                    curProc->arrivalTime,
+                    curProc->runningTime,
+                    curProc->remainingTime,
+                    curProc->waitingTime);
+            fclose(log_file);
 }
