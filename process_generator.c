@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
     *sim_state = 1;
     int stat;
     waitpid(sch_pid, &stat, 0);
+    
     // clear all resources
     kill(getpid(),SIGINT);
 }

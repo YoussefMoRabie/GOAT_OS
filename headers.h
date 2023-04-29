@@ -60,13 +60,13 @@ int init_sim_state()
     int shmid = shmget(SIM_STATE_KEY, 4, IPC_CREAT | 0644);
     if (shmid == -1)
     {
-        perror("Error in creating sim state!");
+        perror("Error in creating sim state!\n");
         exit(-1);
     }
     sim_state = (int *)shmat(shmid, (void *)0, 0);
     if ((long)sim_state == -1)
     {
-        perror("Error in attaching sim state!");
+        perror("Error in attaching sim state!\n");
         exit(-1);
     }
     return shmid;
@@ -78,13 +78,13 @@ int init_sim_state()
  */
 void initClk()
 {
-    int shmid = shmget(SHKEY, 4, 0444);
+    int shmid = shmget(SHKEY, 4, 0444|IPC_EXCL);
     while ((int)shmid == -1)
     {
         // Make sure that the clock exists
         printf("Wait! The clock not initialized yet!\n");
         sleep(1);
-        shmid = shmget(SHKEY, 4, 0444);
+        shmid = shmget(SHKEY, 4, 0444|IPC_EXCL);
     }
     shmaddr = (int *)shmat(shmid, (void *)0, 0);
 }
