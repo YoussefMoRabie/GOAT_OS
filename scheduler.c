@@ -9,16 +9,18 @@ void write_in_logFile_resume();
 void write_in_logFile_stop();
 
 Process *curProc;
-Queue *RQ;
+Queue *RQ;  //ready queue
+Queue *WQ;  //queue for processes unable to initialize because of not having enough memory
 int TempCLK;
 PROC_BUFF newProc;
 int msgBuf;
 int algoId;
+int mem_algo_id;
 void (*algo_func)();
 bool switched;
 bool new_arrive = false;
 bool cur_terminated = false;
-int Quantum = 3;          // may be input
+int Quantum; // input from user when they choose round robin
 // variables for the output files
 FILE *log_file;
 FILE *perf;
@@ -41,19 +43,26 @@ int main(int argc, char *argv[])
     signal(SIGUSR2, newProc_arrive);
 
     RQ = Queue_init();
+    WQ = Queue_init(); 
     algoId = atoi(argv[1]);
+    mem_algo_id = atoi(argv[2]);
+    // for round robin
+    if (algoId == 3)
+    {
+        Quantum = atoi(argv[4]);
+    }
 
     msgBuf = init_buff();
     curProc == NULL;
 
-    process_count = atoi(argv[2]);
+    process_count = atoi(argv[3]);
     WTA_ARR = malloc(process_count * sizeof(float));
 
-    perf = fopen("scheduler.log","w");
-    fprintf(perf,"#At time x process y state arr w total z remain y wait k\n");
+    perf = fopen("scheduler.log", "w");
+    fprintf(perf, "#At time x process y state arr w total z remain y wait k\n");
     fclose(perf);
 
-    printf("scheduler is working with algorithm id: %s\n", argv[1]);
+    printf("scheduler is working with algorithm id: %d and memory algorithm: %d\n", algoId, mem_algo_id);
     // TODO implement the scheduler :)
     // upon termination release the clock resources.
     TempCLK = getClk();
@@ -71,9 +80,9 @@ void algo_start()
     case 2:
         algo_func = &HPF;
         break;
-    case 3: 
+    case 3:
         algo_func = &RR;
-        break;  
+        break;
     default:
         break;
     }
@@ -101,22 +110,15 @@ void algo_start()
 
 void SRTN()
 {
-
     // if there is no currently process, pick the head of the ready queue
     if (curProc == NULL)
     {
         curProc = dequeue(RQ);
     }
     else if (!new_arrive)
-    { // else you update the current process params
-
-        /* TO BE REMOVED LATER
-        if (curProc->remainingTime==0)
-              return;
-        */
-
-         // it doesn't update if a new process arrived cuz it is already updated
-            curProc->remainingTime--;
+    {
+        // it doesn't update if a new process arrived cuz it is already updated
+        curProc->remainingTime--;
     }
     new_arrive = false; // reset the flag
 
@@ -128,14 +130,6 @@ void SRTN()
         kill(curProc->pid, SIGSTOP);
         curProc->lastPreempt = getClk();
         curProc->p_state = Ready;
-        // for testing
-        printf("At time %d process %d stopped arr %d total %d remain %d wait %d\n",
-               getClk(),
-               curProc->id,
-               curProc->arrivalTime,
-               curProc->runningTime,
-               curProc->remainingTime,
-               curProc->waitingTime);
 
         write_in_logFile_stop();
 
@@ -143,7 +137,62 @@ void SRTN()
         curProc = dequeue(RQ);
         curProc->p_state = Running;
     }
-    
+
+    if (curProc && curProc->remainingTime == curProc->runningTime)
+    {
+        // create new process and run it
+        switched = false;
+
+        int pid = fork();
+        if (pid == 0)
+        {
+            char t[8];
+            sprintf(t, "%d", curProc->remainingTime);
+            if (execlp("./process.out", "./process.out", t, NULL) == -1)
+            {
+                perror("error in runnign proc\n");
+            }
+        }
+        curProc->pid = pid;
+        curProc->waitingTime += getClk() - curProc->arrivalTime;
+        curProc->p_state = Running;
+
+        // output to the scheduler.log file
+        write_in_logFile_start();
+    }
+    else
+    {
+        if (switched)
+        {
+            // resume the process if there is context switch
+            switched = false;
+            curProc->waitingTime += getClk() - curProc->lastPreempt;
+
+            // output to the scheduler.log file
+            write_in_logFile_resume();
+
+            kill(curProc->pid, SIGCONT);
+        }
+    }
+}
+
+void HPF()
+{
+    if (new_arrive && curProc != NULL)
+    {
+        new_arrive = false;
+        return;
+    }
+    // if there is no currently process, pick the head of the ready queue
+    if (curProc == NULL)
+    {
+        curProc = dequeue(RQ);
+    }
+    else
+    { // else you update the current process params
+        curProc->remainingTime--;
+    }
+
     if (curProc && curProc->remainingTime == curProc->runningTime)
     {
         // create new process and run it
@@ -161,142 +210,43 @@ void SRTN()
         curProc->pid = pid;
         curProc->waitingTime += getClk() - curProc->arrivalTime;
         curProc->p_state = Running;
-        // for testing
-        printf("At time %d process %d started arr %d total %d remain %d wait %d\n",
-               getClk(),
-               curProc->id,
-               curProc->arrivalTime,
-               curProc->runningTime,
-               curProc->remainingTime,
-               curProc->waitingTime);
 
         // output to the scheduler.log file
         write_in_logFile_start();
     }
-    else
+    else if (switched)
     {
-        if (switched)
-        {
-            // resume the process if there is context switch
-            switched = false;
-            curProc->waitingTime += getClk() - curProc->lastPreempt;
-            // for testing
-            printf("At time %d process %d resumed arr %d total %d remain %d wait %d\n",
-                   getClk(),
-                   curProc->id,
-                   curProc->arrivalTime,
-                   curProc->runningTime,
-                   curProc->remainingTime,
-                   curProc->waitingTime);
+        // resume the process if there is context switch
+        switched = false;
+        curProc->waitingTime += getClk() - curProc->lastPreempt;
 
-            // output to the scheduler.log file
-           write_in_logFile_resume();
-           
-            kill(curProc->pid, SIGCONT);
-        }
+        // output to the scheduler.log file
+        write_in_logFile_resume();
+
+        kill(curProc->pid, SIGCONT);
     }
 }
-
-void HPF()
+void RR()
 {
-    if(new_arrive&& curProc != NULL)
-    {
-        new_arrive=false;
-        return;
-    }
     // if there is no currently process, pick the head of the ready queue
     if (curProc == NULL)
     {
         curProc = dequeue(RQ);
     }
     else
-    { // else you update the current process params
-        curProc->remainingTime--;
-    }
-
-    if (curProc && curProc->remainingTime == curProc->runningTime)
     {
-        //create new process and run it
-        switched = false;
-        int pid = fork();
-        if (pid == 0)
-        {
-            char t[8];
-            sprintf(t, "%d", curProc->remainingTime);
-            if (execlp("./process.out", "./process.out", t, NULL) == -1)
-            {
-                perror("error in runnign proc\n");
-            }
-        }
-        curProc->pid = pid;
-        curProc->waitingTime += getClk() - curProc->arrivalTime;
-        curProc->p_state = Running;
-        // for testing
-        printf("At time %d process %d started arr %d total %d remain %d wait %d\n",
-               getClk(),
-               curProc->id,
-               curProc->arrivalTime,
-               curProc->runningTime,
-               curProc->remainingTime,
-               curProc->waitingTime);
-
-        // output to the scheduler.log file
-        write_in_logFile_start();
-    }
-    else if (switched)
-        {
-            // resume the process if there is context switch
-            switched = false;
-            curProc->waitingTime += getClk() - curProc->lastPreempt;
-            // for testing
-            printf("At time %d process %d resumed arr %d total %d remain %d wait %d\n",
-                   getClk(),
-                   curProc->id,
-                   curProc->arrivalTime,
-                   curProc->runningTime,
-                   curProc->remainingTime,
-                   curProc->waitingTime);
-
-            // output to the scheduler.log file
-            write_in_logFile_resume();
-
-            kill(curProc->pid, SIGCONT);
-        }
-}
-void RR(){
-// if there is no currently process, pick the head of the ready queue
-    if (curProc == NULL)
-    {
-        curProc = dequeue(RQ);
-    }
-    else
-    { // else you update the current process params
-
-        /* TO BE REMOVED LATER
-        if (curProc->remainingTime==0)
-              return;
-        */
-
         if (!new_arrive) // it doesn't update if a new process arrived cuz it is already updated
             curProc->remainingTime--;
     }
     new_arrive = false; // reset the flag
-if (!isEmpty(RQ) && curProc && getClk() - curProc->lastResume == Quantum)
+    if (!isEmpty(RQ) && curProc && getClk() - curProc->lastResume == Quantum && curProc->remainingTime > 0)
     {
         // context switch
-
         switched = true;
+        printf("sch %d remain: %d\n", curProc->pid, curProc->remainingTime);
         kill(curProc->pid, SIGSTOP);
         curProc->lastPreempt = getClk();
         curProc->p_state = Ready;
-        // for testing
-        printf("At time %d process %d stopped arr %d total %d remain %d wait %d\n",
-               getClk(),
-               curProc->id,
-               curProc->arrivalTime,
-               curProc->runningTime,
-               curProc->remainingTime,
-               curProc->waitingTime);
 
         // output to the scheduler.log file
         write_in_logFile_stop();
@@ -323,14 +273,6 @@ if (!isEmpty(RQ) && curProc && getClk() - curProc->lastResume == Quantum)
         curProc->waitingTime += getClk() - curProc->arrivalTime;
         curProc->p_state = Running;
         curProc->lastResume = getClk();
-        // for testing
-        printf("At time %d process %d started arr %d total %d remain %d wait %d\n",
-               getClk(),
-               curProc->id,
-               curProc->arrivalTime,
-               curProc->runningTime,
-               curProc->remainingTime,
-               curProc->waitingTime);
 
         // output to the scheduler.log file
         write_in_logFile_start();
@@ -343,22 +285,25 @@ if (!isEmpty(RQ) && curProc && getClk() - curProc->lastResume == Quantum)
             switched = false;
             curProc->waitingTime += getClk() - curProc->lastPreempt;
             curProc->lastResume = getClk();
-            // for testing
-            printf("At time %d process %d resumed arr %d total %d remain %d wait %d\n",
-                   getClk(),
-                   curProc->id,
-                   curProc->arrivalTime,
-                   curProc->runningTime,
-                   curProc->remainingTime,
-                   curProc->waitingTime);
 
             // output to the scheduler.log file
-           write_in_logFile_resume();
+            write_in_logFile_resume();
 
             kill(curProc->pid, SIGCONT);
         }
     }
 }
+
+bool First_Fit()
+{
+    return true;
+}
+
+bool Buddy()
+{
+    return true;
+}
+
 void Termination_SIG(int signnum)
 {
     int TA = getClk() - curProc->arrivalTime;
@@ -368,16 +313,6 @@ void Termination_SIG(int signnum)
     tot_runtime += curProc->runningTime;
     WTA_ARR[WTA_INDEX] = WeTA;
     WTA_INDEX++;
-    // for testing
-    printf("At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %f\n",
-           getClk(),
-           curProc->id,
-           curProc->arrivalTime,
-           curProc->runningTime,
-           curProc->remainingTime,
-           curProc->waitingTime,
-           TA,
-           WeTA);
 
     // output to the "scheduler.log" file
     log_file = fopen("scheduler.log", "a");
@@ -396,11 +331,53 @@ void Termination_SIG(int signnum)
     curProc = NULL;
     switched = true;
     cur_terminated = true;
+
+    while(!isEmpty(WQ))
+    {
+    if(mem_algo_id == 1)
+    {
+        if(First_Fit(front(WQ)))
+        {
+            Process* p = dequeue(WQ);
+            if (algoId == 1)
+            {
+                InsertWithPriority(RQ, p, p->remainingTime);
+            }
+            else if (algoId == 2)
+            {
+                InsertWithPriority(RQ, p, p->priority);
+            }
+            else if (algoId == 3)
+            {
+                enqueue(RQ, p);
+            }
+
+        }
+    }
+    else
+    {
+        if(Buddy(front(WQ)))
+        {
+            Process* p = dequeue(WQ);
+            if (algoId == 1)
+            {
+                InsertWithPriority(RQ, p, p->remainingTime);
+            }
+            else if (algoId == 2)
+            {
+                InsertWithPriority(RQ, p, p->priority);
+            }
+            else if (algoId == 3)
+            {
+                enqueue(RQ, p);
+            }
+        }
+    }
+    }
 }
 
 void newProc_arrive(int signnum)
 {
-    new_arrive = true ; //&& ((algoId==1) || (algoId==2)&&(curProc==NULL));
     struct msqid_ds stat;
     int i;
     do
@@ -420,29 +397,46 @@ void newProc_arrive(int signnum)
         p->remainingTime = newProc.proc.remainingTime;
         p->runningTime = newProc.proc.runningTime;
         p->waitingTime = newProc.proc.waitingTime;
+        p->memsize = newProc.proc.memsize;
 
+        bool allocation_result = false;
+        if (mem_algo_id == 1)
+        {
+            allocation_result = First_Fit();
+        }
+        else
+        {
+            allocation_result = Buddy();
+        }
         // to be modified based on algoId
-        if (algoId == 1)
+        if (allocation_result)
         {
-            InsertWithPriority(RQ, p, p->remainingTime);
+            if (algoId == 1)
+            {
+                InsertWithPriority(RQ, p, p->remainingTime);
+            }
+            else if (algoId == 2)
+            {
+                InsertWithPriority(RQ, p, p->priority);
+            }
+            else if (algoId == 3)
+            {
+                enqueue(RQ, p);
+            }
         }
-        else if (algoId == 2)
+        else
         {
-            InsertWithPriority(RQ, p, p->priority);
+            enqueue(WQ, p);
         }
-        else if(algoId == 3)
-        {
-            enqueue(RQ,p);
-        }
-
     } while (i);
+    new_arrive = true;
 }
 
 // outputs the scheduler.perf at the end of the simulation
 void output_performance()
 {
     int curr_time = getClk();
-    float CPU_utilization = ( tot_runtime / (float)curr_time) * 100;
+    float CPU_utilization = (tot_runtime / (float)curr_time) * 100;
     float avg_wait = (float)tot_Wait / process_count;
     float WTA_SUM = 0;
     float sum_squared_error = 0;
@@ -457,7 +451,7 @@ void output_performance()
     }
     float WTA_STD = sqrt(sum_squared_error / process_count);
 
-    printf("proc_count: %d curr_time: %d tot_runtime: %d tot_wait: %d\n",process_count,curr_time,tot_runtime,tot_Wait);
+    printf("proc_count: %d curr_time: %d tot_runtime: %d tot_wait: %d\n", process_count, curr_time, tot_runtime, tot_Wait);
     perf = fopen("scheduler.perf", "w");
     fprintf(perf, "CPU utilization = %f\n", CPU_utilization);
     fprintf(perf, "Avg WTA = %f\n", WTA_AVG);
@@ -466,40 +460,41 @@ void output_performance()
     fclose(perf);
 }
 
-void write_in_logFile_start(){
-// output to the scheduler.log file
-        log_file = fopen("scheduler.log", "a");
-        fprintf(log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n",
-                getClk(),
-                curProc->id,
-                curProc->arrivalTime,
-                curProc->runningTime,
-                curProc->remainingTime,
-                curProc->waitingTime);
-        fclose(log_file);
-}
-void write_in_logFile_stop(){
+void write_in_logFile_start()
+{
     // output to the scheduler.log file
-        log_file = fopen("scheduler.log", "a");
-        fprintf(log_file, "At time %d process %d stopped arr %d total %d remain %d wait %d\n",
-                getClk(),
-                curProc->id,
-                curProc->arrivalTime,
-                curProc->runningTime,
-                curProc->remainingTime,
-                curProc->waitingTime);
-        fclose(log_file);
+    log_file = fopen("scheduler.log", "a");
+    fprintf(log_file, "At time %d process %d started arr %d total %d remain %d wait %d\n",
+            getClk(),
+            curProc->id,
+            curProc->arrivalTime,
+            curProc->runningTime,
+            curProc->remainingTime,
+            curProc->waitingTime);
+    fclose(log_file);
 }
-
-
-void write_in_logFile_resume(){
- log_file = fopen("scheduler.log", "a");
-            fprintf(log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n",
-                    getClk(),
-                    curProc->id,
-                    curProc->arrivalTime,
-                    curProc->runningTime,
-                    curProc->remainingTime,
-                    curProc->waitingTime);
-            fclose(log_file);
+void write_in_logFile_stop()
+{
+    // output to the scheduler.log file
+    log_file = fopen("scheduler.log", "a");
+    fprintf(log_file, "At time %d process %d stopped arr %d total %d remain %d wait %d\n",
+            getClk(),
+            curProc->id,
+            curProc->arrivalTime,
+            curProc->runningTime,
+            curProc->remainingTime,
+            curProc->waitingTime);
+    fclose(log_file);
+}
+void write_in_logFile_resume()
+{
+    log_file = fopen("scheduler.log", "a");
+    fprintf(log_file, "At time %d process %d resumed arr %d total %d remain %d wait %d\n",
+            getClk(),
+            curProc->id,
+            curProc->arrivalTime,
+            curProc->runningTime,
+            curProc->remainingTime,
+            curProc->waitingTime);
+    fclose(log_file);
 }

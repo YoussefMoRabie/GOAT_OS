@@ -8,7 +8,7 @@ int sim_state_id;
 
 int main(int argc, char *argv[])
 {
-    Queue process_queue = * Queue_init();
+    Queue process_queue = *Queue_init();
     signal(SIGINT, clearResources);
     sim_state_id = init_sim_state();
     int initial_state = 0;
@@ -45,12 +45,29 @@ int main(int argc, char *argv[])
     }
 
     // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
-    char algo_id;
+    char algo_id, mem_algo_id;
     while (algo_id != '1' && algo_id != '2' && algo_id != '3')
     {
         printf("Enter the schedueling algorithm \n 1.SRTN   2.HPF   3.Round Robin\n");
         scanf("%c", &algo_id);
     }
+    // if the chosen algorithm was round robin, take the quantum
+    int quantum;
+    if (algo_id == '3')
+    {
+        while (quantum < 1 || quantum > 100)
+        {
+            printf("Enter a valid quantum value [1 - 100]\n");
+            scanf("%d", &quantum);
+        }
+    }
+    //get the memory allocating algorithm
+    while (mem_algo_id != '1' && mem_algo_id != '2')
+    {
+        printf("Enter the memory allocation algorithm \n 1.First Fit   2.Buddy\n");
+        scanf("%c", &mem_algo_id);
+    }
+
     // 3. Initiate and create the scheduler and clock processes.
     sch_pid = fork();
     if (sch_pid == -1)
@@ -61,9 +78,16 @@ int main(int argc, char *argv[])
     {
         char proc_count[8];
         sprintf(proc_count, "%d", process_count);
-        execlp("./scheduler.out", "./scheduler.out", &algo_id, proc_count, NULL);
+        if (algo_id == '3')
+        {
+            char q[8];
+            sprintf(q, "%d", quantum);
+            execlp("./scheduler.out", "./scheduler.out", algo_id, mem_algo_id, proc_count, q, NULL);
+        }
+        else
+            execlp("./scheduler.out", "./scheduler.out", algo_id, mem_algo_id, proc_count, NULL);
     }
-    
+
     clk_pid = fork();
     if (sch_pid == -1)
     {
@@ -76,7 +100,6 @@ int main(int argc, char *argv[])
     initClk();
     // To get time use this
     int x = getClk();
-    printf("current time is %d\n", x);
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
     // DONE AT THE BEGINNING
@@ -89,7 +112,6 @@ int main(int argc, char *argv[])
         if (current_time != getClk())
         {
             current_time = getClk();
-            printf("current time is %d\n", current_time);
         }
         while (!isEmpty(&process_queue) && getClk() == front(&process_queue)->arrivalTime)
         {
@@ -111,19 +133,19 @@ int main(int argc, char *argv[])
                 perror("Error in Send!\n");
                 exit(-1);
             }
-            //send the signal if this is the last process the generator will be sending this second
-            if(!(!isEmpty(&process_queue) && getClk() == front(&process_queue)->arrivalTime))
+            // send the signal if this is the last process the generator will be sending this second
+            if (!(!isEmpty(&process_queue) && getClk() == front(&process_queue)->arrivalTime))
                 kill(sch_pid, SIGUSR2);
         }
     }
-    // 7. Clear clock resources 
+    // 7. Clear clock resources
     // switch sim state to let the scheduler know that no more processes will be sent and wait for it to die before clearing IPCs
     *sim_state = 1;
     int stat;
     waitpid(sch_pid, &stat, 0);
-    
+
     // clear all resources
-    kill(getpid(),SIGINT);
+    kill(getpid(), SIGINT);
 }
 
 void clearResources(int signum)

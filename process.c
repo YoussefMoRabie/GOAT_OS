@@ -14,7 +14,6 @@ int main(int argc, char *argv[])
     remainingtime = atoi(argv[1]);
 
     TempClk = getClk();
-    printf("process initial clk = %d\n",TempClk);
     while (remainingtime > 0)
     {
         if (TempClk != getClk() || cont)
@@ -26,9 +25,8 @@ int main(int argc, char *argv[])
             }
             else
                 remainingtime--;
-            printf("Proc: remaining: %d\n",remainingtime);
+            printf("proc %d remain: %d\n", getpid(), remainingtime);
         }
-        // remainingtime = ??;
     }
     kill(getppid(), SIGUSR1);
     destroyClk(false);
