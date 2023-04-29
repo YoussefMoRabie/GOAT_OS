@@ -26,8 +26,8 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    char p_id[16], p_arr[16], p_run[16], p_pri[16];
-    while (fscanf(ptr, "%s %s %s %s", p_id, p_arr, p_run, p_pri) == 4)
+    char p_id[16], p_arr[16], p_run[16], p_pri[16], p_mem[16];
+    while (fscanf(ptr, "%s %s %s %s %s", p_id, p_arr, p_run, p_pri, p_mem) == 5)
     {
         // ignore comments
         if (p_id[0] == '#')
@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
         p->id = atoi(p_id);
         p->priority = atoi(p_pri);
         p->runningTime = atoi(p_run);
+        p->memsize = atoi(p_mem);
         p->remainingTime = p->runningTime;
         p->p_state = Ready;
         process_count++;
@@ -52,15 +53,23 @@ int main(int argc, char *argv[])
     }
     // 3. Initiate and create the scheduler and clock processes.
     sch_pid = fork();
-    if (sch_pid == 0)
+    if (sch_pid == -1)
+    {
+        printf("error in creating scheduler");
+    }
+    else if (sch_pid == 0)
     {
         char proc_count[8];
         sprintf(proc_count, "%d", process_count);
         execlp("./scheduler.out", "./scheduler.out", &algo_id, proc_count, NULL);
     }
-
+    
     clk_pid = fork();
-    if (clk_pid == 0)
+    if (sch_pid == -1)
+    {
+        printf("error in creating scheduler");
+    }
+    else if (clk_pid == 0)
         execlp("./clk.out", "./clk.out", NULL);
 
     // 4. Use this function after creating the clock process to initialize clock
@@ -92,6 +101,7 @@ int main(int argc, char *argv[])
             newProc.proc.priority = toSnd->priority;
             newProc.proc.remainingTime = toSnd->remainingTime;
             newProc.proc.runningTime = toSnd->runningTime;
+            newProc.proc.memsize = toSnd->memsize;
             newProc.proc.lastPreempt = 0;
             newProc.proc.waitingTime = 0;
 

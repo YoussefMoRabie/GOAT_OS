@@ -28,6 +28,8 @@ typedef struct Process
 
     int waitingTime;
 
+    int memsize;
+
     int lastPreempt;
 
     int remainingTime;
@@ -38,7 +40,7 @@ typedef struct Process
 
     int pid;
 
-    int id;
+    int id; //question
 
 }Process;
 
