@@ -30,6 +30,20 @@ int tot_runtime = 0;
 float *WTA_ARR; // array of WTA, used in scheduler.log math
 int WTA_INDEX = 0;
 
+
+void Buddy_Init();
+//Memory Lists
+LinkedList* All_Holes[9];
+LinkedList *Holes_2;
+LinkedList *Holes_1;
+LinkedList *Holes_4;
+LinkedList *Holes_8;
+LinkedList *Holes_16;
+LinkedList *Holes_32;
+LinkedList *Holes_64;
+LinkedList *Holes_128;
+LinkedList *Holes_256;
+
 void SRTN();
 void HPF();
 void RR();
@@ -39,6 +53,7 @@ int main(int argc, char *argv[])
     initClk();
     init_sim_state();
 
+    Buddy_Init();
     signal(SIGUSR1, Termination_SIG);
     signal(SIGUSR2, newProc_arrive);
 
@@ -298,9 +313,86 @@ bool First_Fit()
 {
     return true;
 }
+void Buddy_Init(){
+    Holes_1=LinkedList_init();
+    All_Holes[0]=Holes_1;
+    Holes_2=LinkedList_init();
+    All_Holes[1]=Holes_2;
+    Holes_4=LinkedList_init();
+    All_Holes[2]=Holes_4;
+    Holes_8=LinkedList_init();
+    All_Holes[3]=Holes_8;
+    Holes_16=LinkedList_init();
+    All_Holes[4]=Holes_16;
+    Holes_32=LinkedList_init();
+    All_Holes[5]=Holes_32;
+    Holes_64=LinkedList_init();
+    All_Holes[6]=Holes_64;
+    Holes_128=LinkedList_init();
+    All_Holes[7]=Holes_128;
+    Holes_256=LinkedList_init();
 
-bool Buddy()
+    LL_Node *hole256_1=newLLNode(768,1023);
+    hole256_1->next=NULL;
+        printf("after \n ");
+    LL_Node *hole256_2=newLLNode(512,767);
+    hole256_2->next=hole256_1;
+    LL_Node *hole256_3=newLLNode(256,511);
+    hole256_3->next=hole256_2;
+    LL_Node *hole256_4=newLLNode(0,255);
+    hole256_4->next=hole256_3;
+
+    Holes_256->size=4;
+    Holes_256->head=hole256_4;
+    All_Holes[8]=Holes_256;
+    printf("All Size %d\n",All_Holes[8]->size);
+}
+void Partition(int cur_hole_idx,int needed_hole_idx){
+    printf("Entered Partition\n");
+    while (cur_hole_idx != needed_hole_idx){
+        LL_Node* toSplit =All_Holes[cur_hole_idx]->head;
+        All_Holes[cur_hole_idx]->head=All_Holes[cur_hole_idx]->head->next;
+        All_Holes[cur_hole_idx]->size-=1;
+        int newSize=toSplit->data->size/2;
+        LL_Node* new_2=newLLNode(toSplit->data->start+ newSize,toSplit->data->end);
+        new_2->next=All_Holes[cur_hole_idx-1]->head;
+        LL_Node* new_1=newLLNode(toSplit->data->start,new_2->data->start-1);
+        new_1->next=new_2;
+        All_Holes[cur_hole_idx-1]->head=new_1;
+        All_Holes[cur_hole_idx-1]->size+=2;
+        cur_hole_idx--;
+    }
+
+}
+bool Buddy(Process* proc)
 {
+    printf("Entered Buddy\n");
+     int Original_Size=proc->memsize;
+    int Needed_Hole_idx=ceil(log2(Original_Size));
+    int cur_hole_idx=Needed_Hole_idx;
+    printf("cur idxx %d,Needed %d, %d\n",cur_hole_idx,Needed_Hole_idx,All_Holes[cur_hole_idx]->size);
+
+    while (cur_hole_idx<9 && isLLEmpty(All_Holes[cur_hole_idx])){
+
+        cur_hole_idx++;
+    }
+    printf("cur idxx %d,Needed %d\n",cur_hole_idx,Needed_Hole_idx);
+    if(cur_hole_idx == 9)
+        return false;
+    if(cur_hole_idx!=Needed_Hole_idx)
+        Partition(cur_hole_idx,Needed_Hole_idx);
+
+    MemBlock* Allocated_Block=newMemBlock(All_Holes[Needed_Hole_idx]->head);
+    printf("Procces %d allocated space from %d to %d of size %d\n",proc->id,Allocated_Block->start,Allocated_Block->end,Allocated_Block->size);
+    LL_Node* temp =All_Holes[Needed_Hole_idx]->head;
+    All_Holes[Needed_Hole_idx]->head=All_Holes[Needed_Hole_idx]->head->next;
+    All_Holes[Needed_Hole_idx]->size-=1;
+    //  for (int i=0; i<9; i++){
+    //     if (All_Holes[i]->Head!=NULL){
+    //         printf("%d ----> %d\n",i,All_Holes[i]->Head->start);
+    //     }
+    // }
+    free(temp);
     return true;
 }
 
@@ -406,7 +498,7 @@ void newProc_arrive(int signnum)
         }
         else
         {
-            allocation_result = Buddy();
+            allocation_result = Buddy(p);
         }
         // to be modified based on algoId
         if (allocation_result)

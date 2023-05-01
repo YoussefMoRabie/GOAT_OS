@@ -12,6 +12,7 @@
 #include <signal.h>
 #include "DS/queue.h"
 #include <math.h>
+#include "DS/linkedList.h"
 
 typedef short bool;
 #define true 1

@@ -28,7 +28,6 @@ LinkedList *LinkedList_init()
     ll = (struct LinkedList *)malloc(sizeof(LinkedList));
     ll->size = 0;
     ll->head  = NULL;
-;
     return ll;
 }
 
@@ -86,8 +85,8 @@ LinkedList *LinkedList_init()
 
 
 
-int isEmpty(LinkedList *ll) { return (ll->size == 0); }
+int isLLEmpty(LinkedList *ll) { return (ll->size == 0); }
 
-int size_queue(LinkedList *ll) { return ll->size; }
+int size_LL(LinkedList *ll) { return ll->size; }
 
 #endif

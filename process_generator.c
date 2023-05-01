@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     while (algo_id[0] != '1' && algo_id[0] != '2' && algo_id[0] != '3')
     {
         printf("Enter the schedueling algorithm \n 1.SRTN   2.HPF   3.Round Robin\n");
-        scanf("%c", &algo_id[0]);
+        scanf(" %c", &algo_id[0]);
     }
     // if the chosen algorithm was round robin, take the quantum
     int quantum;
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     while (mem_algo_id[0] != '1' && mem_algo_id[0] != '2')
     {
         printf("Enter the memory allocation algorithm \n 1.First Fit   2.Buddy\n");
-        scanf("%c", &mem_algo_id[0]);
+        scanf(" %c", &mem_algo_id[0]);
     }
 
     // 3. Initiate and create the scheduler and clock processes.
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     {
         char proc_count[8];
         sprintf(proc_count, "%d", process_count);
-        if (algo_id == '3')
+        if (algo_id[0] == '3')
         {
             char q[8];
             sprintf(q, "%d", quantum);

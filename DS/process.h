@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2023
  * 
  */
-
+#include "LL_node.h"
 #ifndef PROCESS_H
 #define PROCESS_H
 
@@ -16,7 +16,19 @@ typedef enum pState{
     Ready,
     Running,
 }pState;
+typedef struct MemBlock{
+    int start;
+    int end;
+    int size;
+}MemBlock;
 
+MemBlock* newMemBlock(LL_Node* hole){
+    MemBlock *temp = (MemBlock *)malloc(sizeof(MemBlock));
+    temp->start = hole->data->start ;
+    temp->end = hole ->data ->end;
+    temp->size=hole ->data->size;
+    return temp;
+}
 typedef struct Process
 {
 
@@ -35,6 +47,7 @@ typedef struct Process
     int remainingTime;
 
     int lastResume;
+    MemBlock memBlock;
 
     pState p_state;
 
