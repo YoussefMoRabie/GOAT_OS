@@ -16,7 +16,7 @@ typedef struct Hole
 {
 
     int start;
-    int size;
+    
     int end;
 
 }Hole;

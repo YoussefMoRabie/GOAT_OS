@@ -53,7 +53,7 @@ typedef struct Process
 
     int pid;
 
-    int id; //question
+    int id;
 
 }Process;
 

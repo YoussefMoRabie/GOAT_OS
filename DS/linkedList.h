@@ -14,6 +14,8 @@
 
 #include "LL_node.h"
 #include "hole.h"
+#include "../headers.h"
+
 
 typedef struct LinkedList
 {
@@ -40,15 +42,7 @@ LinkedList *LinkedList_init()
 //     ll->size += 1;
 //     return;
 // }
-// void insertByStartAndEnd(LinkedList *ll, int start,int end)
-// {
-//     LL_Node *temp = newNode(start,end);
-//     temp->priority=pri;
-//     temp->next=ll->head;
-//     ll->head = temp; 
-//     ll->size += 1;
-//     return;
-// }
+
 
 
 // void InsertHoleWithPriority(LinkedList *ll, Hole *data,int pri)
@@ -83,10 +77,65 @@ LinkedList *LinkedList_init()
 //     return;
 // }
 
+LL_Node * insertByStartAndEnd(LinkedList *ll, int start,int end)
+{
+    LL_Node *temp = newNode(start,end);
+    if (ll->head == NULL||ll->head->data->start>start)
+    {
+        temp->next=ll->head;
+        ll->head->prev=temp;
+        ll->head = temp;
+    }
+    else
+    {
+            struct LL_Node *next = ll->head;
+            while (next->next != NULL &&
+                   next->next->data->start <= temp->data->start)
+            {
+                next = next->next;
+            }
+            if (next->next != NULL)
+            {
+                temp->next = next->next;
+                next->next->prev = temp;
+                next->next = temp;
+                temp->prev=next;
+            }
+            else
+            {
+                next->next = temp;
+                temp->prev=next;
+            }
+    }
+    
+    ll->size += 1;
+///////////////////////////////////////////delete////////////////////
+    struct LL_Node *next = ll->head;
+    while(next!= NULL)
+    {
+    printf("%p     %p(%d,%d)      %p \n",next->prev,next,next->data->start,next->data->start,next->next);
+    next = next->next;
+    }
+    
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
+    return temp;
+}
 
-int isLLEmpty(LinkedList *ll) { return (ll->size == 0); }
+void removeNode(LinkedList *ll,LL_Node *  node){
+    if(node->prev==NULL)
+    {
+        ll->head=ll->head->next;
+        ll->head->prev=NULL;
+    }else{
+        node->prev->next=node->next;
+        node->next->prev=node->prev;
+    }
+    delete node;
+    node=NULL;
+}
+int isEmpty(LinkedList *ll) { return (ll->size == 0); }
 
-int size_LL(LinkedList *ll) { return ll->size; }
+int size_queue(LinkedList *ll) { return ll->size; }
 
 #endif
