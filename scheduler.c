@@ -67,9 +67,11 @@ int main(int argc, char *argv[])
         Quantum = atoi(argv[4]);
     }
     if(mem_algo_id == 1){
+        
         memoryHoles = LinkedList_init();
         insertByStartAndEnd(memoryHoles,0,1023);
-        
+
+
     }else{
        Buddy_Init();
     }
@@ -345,9 +347,6 @@ bool allocateMemory(Process *p)
 //deallocate
 void freeMemory(Process *p)
 {
-
-    printf("deallocate\n");
-
     // insert new node into memoryHoles linked list
     LL_Node* new_node = insertByStartAndEnd(memoryHoles,p->memBlock.start,p->memBlock.end);
     Hole *curr_hole = (Hole*)(new_node->data);
@@ -373,11 +372,10 @@ void freeMemory(Process *p)
 
 bool First_Fit(Process *p)
 {
-
     // Allocate memory using first fit algorithm
     bool result = allocateMemory(p);
     if (result) {
-        printf("Allocated memory for process %d starting at address %d\n", p->pid, p->memBlock.start);
+        printf("Allocated memory for process %d starting at address %d & ending at address %d\n", p->pid, p->memBlock.start,p->memBlock.end);
     } else {
         printf("Unable to allocate memory for process %d\n", p->pid);
     }
