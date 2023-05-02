@@ -77,12 +77,15 @@ LinkedList *LinkedList_init()
 
 LL_Node * insertByStartAndEnd(LinkedList *ll, int start,int end)
 {
+    printf("here1...\n");
     LL_Node *temp = newLLNode(start,end);
     if (ll->head == NULL||ll->head->data->start>start)
     {
+        printf("here2...\n");
         temp->next=ll->head;
-        ll->head->prev=temp;
         ll->head = temp;
+        ll->head->prev=temp;
+        
     }
     else
     {
@@ -111,7 +114,7 @@ LL_Node * insertByStartAndEnd(LinkedList *ll, int start,int end)
     struct LL_Node *next = ll->head;
     while(next!= NULL)
     {
-    printf("%p     %p(%d,%d)      %p \n",next->prev,next,next->data->start,next->data->start,next->next);
+    //printf("%p     %p(%d,%d)      %p \n",next->prev,next,next->data->start,next->data->start,next->next);
     next = next->next;
     }
     

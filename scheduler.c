@@ -52,10 +52,8 @@ int main(int argc, char *argv[])
 {
     initClk();
     init_sim_state();
-    memoryHoles = LinkedList_init();
-
-    Buddy_Init();
-
+    
+     
     signal(SIGUSR1, Termination_SIG);
     signal(SIGUSR2, newProc_arrive);
 
@@ -68,7 +66,15 @@ int main(int argc, char *argv[])
     {
         Quantum = atoi(argv[4]);
     }
+    if(mem_algo_id == 1){
+        
+        memoryHoles = LinkedList_init();
+        insertByStartAndEnd(memoryHoles,0,1023);
 
+
+    }else{
+       Buddy_Init();
+    }
     msgBuf = init_buff();
     curProc == NULL;
 
@@ -313,8 +319,11 @@ void RR()
 
 bool allocateMemory(Process *p)
 {
+
     LL_Node *curr = memoryHoles->head;
+    printf("curr data start %d\n",curr->data->start);
     while (curr != NULL) {
+
         Hole *hole = (Hole *)(curr->data);
         int block_size = hole->end - hole->start + 1;    //need review
         if (block_size >= p->memsize) {
@@ -366,7 +375,7 @@ bool First_Fit(Process *p)
     // Allocate memory using first fit algorithm
     bool result = allocateMemory(p);
     if (result) {
-        printf("Allocated memory for process %d starting at address %d\n", p->pid, p->memBlock.start);
+        printf("Allocated memory for process %d starting at address %d & ending at address %d\n", p->pid, p->memBlock.start,p->memBlock.end);
     } else {
         printf("Unable to allocate memory for process %d\n", p->pid);
     }
@@ -571,7 +580,11 @@ void Termination_SIG(int signnum)
     fclose(log_file);
         //deallocate the memory
         LL_Node *removed = newLLNode(curProc->memBlock.start, curProc->memBlock.end);
-        Buddy_dealloction(removed);
+        if(mem_algo_id == 1){
+            freeMemory(curProc);
+        }else{
+            Buddy_dealloction(removed);
+        }
     free(curProc);
     curProc = NULL;
     switched = true;
