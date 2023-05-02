@@ -29,7 +29,7 @@ int tot_Wait = 0;
 int tot_runtime = 0;
 float *WTA_ARR; // array of WTA, used in scheduler.log math
 int WTA_INDEX = 0;
-
+LinkedList* memoryHoles;
 
 void Buddy_Init();
 //Memory Lists
@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
 {
     initClk();
     init_sim_state();
+    memoryHoles = LinkedList_init();
 
     Buddy_Init();
     signal(SIGUSR1, Termination_SIG);
@@ -309,10 +310,72 @@ void RR()
     }
 }
 
-bool First_Fit()
+bool allocateMemory(Process *p)
 {
-    return true;
+    LL_Node *curr = memoryHoles->head;
+    while (curr != NULL) {
+        Hole *hole = (Hole *)(curr->data);
+        int block_size = hole->end - hole->start + 1;    //need review
+        if (block_size >= p->memsize) {
+            // allocate memory block
+            p->memBlock.start =  hole->start;
+            p->memBlock.end = hole->start + p->memsize;
+
+            hole->start += p->memsize;
+            if (hole->start > hole->end) {
+                // remove node if it is fully allocated
+                removeNode(memoryHoles, curr);
+            }
+            return true;
+        }
+        curr = curr->next;
+    }
+    // no suitable memory block found
+    return false;
 }
+
+//deallocate
+void freeMemory(Process *p)
+{
+
+
+    // insert new node into memoryHoles linked list
+    LL_Node* new_node = insertByStartAndEnd(memoryHoles,p->memBlock.start,p->memBlock.end);
+    Hole *curr_hole = (Hole*)(new_node->data);
+    // merge with next node if it is free
+     
+    if (new_node->next != NULL) {
+        Hole *next_hole = (Hole*)(new_node->next->data);
+        if (next_hole->start == curr_hole->end + 1) {
+            curr_hole->end = next_hole->end;
+            removeNode(memoryHoles, new_node->next);
+        }
+    }
+
+    // merge with previous node if it is free
+    if (new_node->prev != NULL) {
+        Hole *prev_hole = (Hole*)(new_node->prev->data);
+        if (prev_hole->end == curr_hole->start - 1) {
+            prev_hole->end = curr_hole->end;
+            removeNode(memoryHoles, new_node);
+        }
+    }
+}
+
+bool First_Fit(Process *p)
+{
+
+
+    // Allocate memory using first fit algorithm
+    bool result = allocateMemory(p);
+    if (result) {
+        printf("Allocated memory for process %d starting at address %d\n", p->pid, p->memBlock.start);
+    } else {
+        printf("Unable to allocate memory for process %d\n", p->pid);
+    }
+    return result;
+}
+
 void Buddy_Init(){
     Holes_1=LinkedList_init();
     All_Holes[0]=Holes_1;
@@ -494,7 +557,7 @@ void newProc_arrive(int signnum)
         bool allocation_result = false;
         if (mem_algo_id == 1)
         {
-            allocation_result = First_Fit();
+            allocation_result = First_Fit(p);
         }
         else
         {

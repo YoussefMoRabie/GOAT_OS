@@ -131,7 +131,9 @@ void removeNode(LinkedList *ll,LL_Node *  node){
         node->prev->next=node->next;
         node->next->prev=node->prev;
     }
+
     delete node;
+
     node=NULL;
 }
 int isEmpty(LinkedList *ll) { return (ll->size == 0); }
