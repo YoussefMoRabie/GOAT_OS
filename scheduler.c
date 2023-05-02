@@ -338,8 +338,6 @@ bool allocateMemory(Process *p)
 //deallocate
 void freeMemory(Process *p)
 {
-
-
     // insert new node into memoryHoles linked list
     LL_Node* new_node = insertByStartAndEnd(memoryHoles,p->memBlock.start,p->memBlock.end);
     Hole *curr_hole = (Hole*)(new_node->data);
@@ -365,8 +363,6 @@ void freeMemory(Process *p)
 
 bool First_Fit(Process *p)
 {
-
-
     // Allocate memory using first fit algorithm
     bool result = allocateMemory(p);
     if (result) {
@@ -409,10 +405,8 @@ void Buddy_Init(){
     Holes_256->size=4;
     Holes_256->head=hole256_4;
     All_Holes[8]=Holes_256;
-    printf("All Size %d\n",All_Holes[8]->size);
 }
 void Partition(int cur_hole_idx,int needed_hole_idx){
-    printf("Entered Partition\n");
     while (cur_hole_idx != needed_hole_idx){
         LL_Node* toSplit =All_Holes[cur_hole_idx]->head;
         All_Holes[cur_hole_idx]->head=All_Holes[cur_hole_idx]->head->next;
@@ -426,7 +420,6 @@ void Partition(int cur_hole_idx,int needed_hole_idx){
         All_Holes[cur_hole_idx-1]->size+=2;
         cur_hole_idx--;
     }
-
 }
 bool Buddy(Process* proc)
 {
@@ -440,7 +433,6 @@ bool Buddy(Process* proc)
 
         cur_hole_idx++;
     }
-    printf("cur idxx %d,Needed %d\n",cur_hole_idx,Needed_Hole_idx);
     if(cur_hole_idx == 9)
         return false;
     if(cur_hole_idx!=Needed_Hole_idx)
@@ -468,8 +460,6 @@ void Rmv(LinkedList* ll ,LL_Node* node){
         ll->head=ptr->next;
         free(ptr);
         ll->size-=1;
-            printf("size %d\n",ll->size);
-
         return;
     }
     while(ptr){
@@ -478,7 +468,6 @@ void Rmv(LinkedList* ll ,LL_Node* node){
             prev->next=ptr->next;
             free(temp);
             ll->size-=1;
-                printf("size %d\n",ll->size);
             return;
         }
         prev=ptr;
@@ -539,11 +528,9 @@ void Buddy_dealloction(LL_Node *proc)
         {
             if (DeNode->next->data->start == end + 1)
             {
-                printf("created a new node\n");
                 LL_Node *NewNode = newLLNode(st, DeNode->next->data->end);
                 Rmv(ll,DeNode);
                 Rmv(ll,DeNode->next);
-                printf("new node created from %d to %d \n",NewNode->data->start, NewNode->data->end);
                 Buddy_dealloction(NewNode);
             }
         }
@@ -555,7 +542,6 @@ void Buddy_dealloction(LL_Node *proc)
             LL_Node *NewNode = newLLNode(prev->data->start, end);
             Rmv(ll,DeNode);
             Rmv(ll,prev);
-            printf("new node created from %d to %d \n",NewNode->data->start, NewNode->data->end);
             Buddy_dealloction(NewNode);
         }
     }

@@ -130,9 +130,8 @@ void removeNode(LinkedList *ll,LL_Node *  node){
         node->next->prev=node->prev;
     }
 
-    delete node;
-
-    node=NULL;
+    // delete node;
+    // node=NULL;
 }
 int isLLEmpty(LinkedList *ll) { return (ll->size == 0); }
 
