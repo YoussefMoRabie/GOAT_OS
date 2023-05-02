@@ -1,5 +1,5 @@
 build:
-	gcc process_generator.c -o process_generator.out
+	gcc process_generator.c -o process_generator.o
 	gcc clk.c -o clk.out
 	gcc scheduler.c -o scheduler.out -lm
 	gcc process.c -o process.out
@@ -11,4 +11,4 @@ clean:
 all: clean build
 
 run:
-	./process_generator.out
+	./process_generator.o processes.txt -sch 3 -q 3 -mem 1

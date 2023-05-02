@@ -269,7 +269,6 @@ void RR()
     {
         // context switch
         switched = true;
-        printf("sch %d remain: %d\n", curProc->pid, curProc->remainingTime);
         kill(curProc->pid, SIGSTOP);
         curProc->lastPreempt = getClk();
         curProc->p_state = Ready;
@@ -377,8 +376,7 @@ bool First_Fit(Process *p)
     // Allocate memory using first fit algorithm
     bool result = allocateMemory(p);
     if (result) {
-        printf("Allocated memory for process %d starting at address %d & ending at address %d\n", p->id, p->memBlock.start,p->memBlock.end);
-         //printing in the memory log file
+        //printing in the memory log file
         mem_log = fopen("memory.log", "a");
         fprintf(mem_log, "At time %d allocated %d bytes for process %d from %d to %d\n",
             getClk(),
@@ -452,7 +450,6 @@ bool Buddy(Process* proc)
         printf("Process requires more than 256 bytes!\n");
         return false;
     }
-    printf("cur idxx %d,Needed %d, %d\n",cur_hole_idx,Needed_Hole_idx,All_Holes[cur_hole_idx]->size);
 
     while (cur_hole_idx<9 && isLLEmpty(All_Holes[cur_hole_idx])){
         cur_hole_idx++;
@@ -463,7 +460,6 @@ bool Buddy(Process* proc)
         Partition(cur_hole_idx,Needed_Hole_idx);
 
     MemBlock* Allocated_Block=newMemBlock(All_Holes[Needed_Hole_idx]->head);
-    printf("Procces %d allocated space from %d to %d of size %d\n",proc->id,Allocated_Block->start,Allocated_Block->end,Allocated_Block->size);
     LL_Node* temp =All_Holes[Needed_Hole_idx]->head;
     All_Holes[Needed_Hole_idx]->head=All_Holes[Needed_Hole_idx]->head->next;
     All_Holes[Needed_Hole_idx]->size-=1;
@@ -698,7 +694,6 @@ void newProc_arrive(int signnum)
         if (mem_algo_id == 1)
         {
             allocation_result = First_Fit(p);
-            printf("allocation result %d \n",allocation_result);
         }
         else
         {

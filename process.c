@@ -25,7 +25,6 @@ int main(int argc, char *argv[])
             }
             else
                 remainingtime--;
-            printf("proc %d remain: %d\n", getpid(), remainingtime);
         }
     }
     kill(getppid(), SIGUSR1);

@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 
     // TODO Initialization
     // 1. Read the input files.
-    FILE *ptr = fopen("processes.txt", "r");
+    FILE *ptr = fopen(argv[1], "r");
     if (ptr == NULL)
     {
         printf("no such file.");
@@ -44,28 +44,18 @@ int main(int argc, char *argv[])
         enqueue(&process_queue, p);
     }
 
-    // 2. Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
-    char algo_id[2], mem_algo_id[2];
-    while (algo_id[0] != '1' && algo_id[0] != '2' && algo_id[0] != '3')
+    // 2. Use the command line arguments to get the chosen scheduling algorithm and its parameters, if there are any.
+    // format is as mentioned in the faq.
+    char algo_id[2], mem_algo_id[2], quantum[2];
+    algo_id[0] = argv[3][0];
+    if(algo_id[0] == '3')
     {
-        printf("Enter the schedueling algorithm \n 1.SRTN   2.HPF   3.Round Robin\n");
-        scanf(" %c", &algo_id[0]);
+        quantum[0] = argv[5][0];
+        mem_algo_id[0] = argv[7][0];
     }
-    // if the chosen algorithm was round robin, take the quantum
-    int quantum;
-    if (algo_id[0] == '3')
+    else
     {
-        while (quantum < 1 || quantum > 100)
-        {
-            printf("Enter a valid quantum value [1 - 100]\n");
-            scanf("%d", &quantum);
-        }
-    }
-    //get the memory allocating algorithm
-    while (mem_algo_id[0] != '1' && mem_algo_id[0] != '2')
-    {
-        printf("Enter the memory allocation algorithm \n 1.First Fit   2.Buddy\n");
-        scanf(" %c", &mem_algo_id[0]);
+        mem_algo_id[0] = argv[5][0];
     }
 
     // 3. Initiate and create the scheduler and clock processes.
@@ -80,9 +70,7 @@ int main(int argc, char *argv[])
         sprintf(proc_count, "%d", process_count);
         if (algo_id[0] == '3')
         {
-            char q[8];
-            sprintf(q, "%d", quantum);
-            execlp("./scheduler.out", "./scheduler.out", algo_id, mem_algo_id, proc_count, q, NULL);
+            execlp("./scheduler.out", "./scheduler.out", algo_id, mem_algo_id, proc_count, quantum, NULL);
         }
         else
             execlp("./scheduler.out", "./scheduler.out", algo_id, mem_algo_id, proc_count, NULL);
