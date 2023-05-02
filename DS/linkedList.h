@@ -14,8 +14,6 @@
 
 #include "LL_node.h"
 #include "hole.h"
-#include "../headers.h"
-
 
 typedef struct LinkedList
 {
@@ -79,7 +77,7 @@ LinkedList *LinkedList_init()
 
 LL_Node * insertByStartAndEnd(LinkedList *ll, int start,int end)
 {
-    LL_Node *temp = newNode(start,end);
+    LL_Node *temp = newLLNode(start,end);
     if (ll->head == NULL||ll->head->data->start>start)
     {
         temp->next=ll->head;
@@ -136,8 +134,8 @@ void removeNode(LinkedList *ll,LL_Node *  node){
 
     node=NULL;
 }
-int isEmpty(LinkedList *ll) { return (ll->size == 0); }
+int isLLEmpty(LinkedList *ll) { return (ll->size == 0); }
 
-int size_queue(LinkedList *ll) { return ll->size; }
+int size_LL(LinkedList *ll) { return ll->size; }
 
 #endif

@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
     memoryHoles = LinkedList_init();
 
     Buddy_Init();
+
     signal(SIGUSR1, Termination_SIG);
     signal(SIGUSR2, newProc_arrive);
 
@@ -395,9 +396,9 @@ void Buddy_Init(){
     All_Holes[7]=Holes_128;
     Holes_256=LinkedList_init();
 
+
     LL_Node *hole256_1=newLLNode(768,1023);
     hole256_1->next=NULL;
-        printf("after \n ");
     LL_Node *hole256_2=newLLNode(512,767);
     hole256_2->next=hole256_1;
     LL_Node *hole256_3=newLLNode(256,511);
@@ -450,6 +451,7 @@ bool Buddy(Process* proc)
     LL_Node* temp =All_Holes[Needed_Hole_idx]->head;
     All_Holes[Needed_Hole_idx]->head=All_Holes[Needed_Hole_idx]->head->next;
     All_Holes[Needed_Hole_idx]->size-=1;
+    proc->memBlock=*Allocated_Block;
     //  for (int i=0; i<9; i++){
     //     if (All_Holes[i]->Head!=NULL){
     //         printf("%d ----> %d\n",i,All_Holes[i]->Head->start);
@@ -457,6 +459,106 @@ bool Buddy(Process* proc)
     // }
     free(temp);
     return true;
+}
+
+void Rmv(LinkedList* ll ,LL_Node* node){
+    LL_Node* ptr=ll->head;
+    LL_Node* prev=ll->head;
+    if(ptr==node){
+        ll->head=ptr->next;
+        free(ptr);
+        ll->size-=1;
+            printf("size %d\n",ll->size);
+
+        return;
+    }
+    while(ptr){
+        if(ptr==node){
+            LL_Node* temp=ptr;
+            prev->next=ptr->next;
+            free(temp);
+            ll->size-=1;
+                printf("size %d\n",ll->size);
+            return;
+        }
+        prev=ptr;
+        ptr=ptr->next;
+    }
+}
+void Buddy_dealloction(LL_Node *proc)
+{
+    LL_Node *DeNode = proc;
+    int st = DeNode->data->start;
+    int end = DeNode->data->end;
+    int neededIdx = log2(proc->data->size);
+    LinkedList *ll = All_Holes[neededIdx];
+   
+   
+    if (!ll->head)
+    {
+        ll->head = DeNode;
+        ll->size += 1;
+        return;
+    }
+    LL_Node *prev = ll->head;
+    LL_Node *ptr = ll->head->next;
+    if (ll->head->data->start > DeNode->data->end)
+    {
+        DeNode->next = ll->head;
+        ll->head = DeNode;
+        ll->size += 1;
+    }
+    else
+    {
+        while (ptr)
+        {
+            if (ptr->data->start > end)
+            {
+                prev->next = DeNode;
+                DeNode->next = ptr;
+                ll->size += 1;
+                break;
+            }
+            ptr = ptr->next;
+            prev = prev->next;
+        }
+        if (!ptr)
+        {
+            prev->next = DeNode;
+            ll->size += 1;
+        }
+    }
+    if(neededIdx==8)
+    {    
+        return;
+    }  
+  bool IsLeft = !((proc->data->start / proc->data->size) % 2);
+    if (IsLeft)
+    {
+        if (DeNode->next)
+        {
+            if (DeNode->next->data->start == end + 1)
+            {
+                printf("created a new node\n");
+                LL_Node *NewNode = newLLNode(st, DeNode->next->data->end);
+                Rmv(ll,DeNode);
+                Rmv(ll,DeNode->next);
+                printf("new node created from %d to %d \n",NewNode->data->start, NewNode->data->end);
+                Buddy_dealloction(NewNode);
+            }
+        }
+    }
+    else
+    {
+        if (st == prev->data->end + 1)
+        {
+            LL_Node *NewNode = newLLNode(prev->data->start, end);
+            Rmv(ll,DeNode);
+            Rmv(ll,prev);
+            printf("new node created from %d to %d \n",NewNode->data->start, NewNode->data->end);
+            Buddy_dealloction(NewNode);
+        }
+    }
 }
 
 void Termination_SIG(int signnum)
@@ -481,7 +583,9 @@ void Termination_SIG(int signnum)
             TA,
             WeTA);
     fclose(log_file);
-
+        //deallocate the memory
+        LL_Node *removed = newLLNode(curProc->memBlock.start, curProc->memBlock.end);
+        Buddy_dealloction(removed);
     free(curProc);
     curProc = NULL;
     switched = true;

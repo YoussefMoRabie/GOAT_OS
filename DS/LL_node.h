@@ -22,11 +22,14 @@ typedef struct LL_Node
     struct LL_Node *next;
 } LL_Node;
 
-LL_Node *newNode(int start, int end)
+LL_Node *newLLNode(int start, int end)
 {
     LL_Node *temp = (LL_Node *)malloc(sizeof(LL_Node));
-    temp->data->start = start;
-    temp->data->end = end;
+    Hole* hole=(Hole*)malloc(sizeof(Hole));
+    hole->start = start;
+    hole->size=end-start+1;
+    hole->end = end;
+    temp->data=hole;
     temp->next=temp->prev=NULL;
     return temp;
 }
