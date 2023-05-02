@@ -77,15 +77,12 @@ LinkedList *LinkedList_init()
 
 LL_Node * insertByStartAndEnd(LinkedList *ll, int start,int end)
 {
-    printf("here1...\n");
     LL_Node *temp = newLLNode(start,end);
     if (ll->head == NULL||ll->head->data->start>start)
     {
-        printf("here2...\n");
         temp->next=ll->head;
         ll->head = temp;
         ll->head->prev=temp;
-        
     }
     else
     {
@@ -130,11 +127,10 @@ void removeNode(LinkedList *ll,LL_Node *  node){
         ll->head->prev=NULL;
     }else{
         node->prev->next=node->next;
-        node->next->prev=node->prev;
+        if(node->next)
+            node->next->prev=node->prev;
     }
-
-    // delete node;
-    // node=NULL;
+    free(node);
 }
 int isLLEmpty(LinkedList *ll) { return (ll->size == 0); }
 

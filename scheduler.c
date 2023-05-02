@@ -24,6 +24,7 @@ int Quantum; // input from user when they choose round robin
 // variables for the output files
 FILE *log_file;
 FILE *perf;
+FILE *mem_log;
 int process_count;
 int tot_Wait = 0;
 int tot_runtime = 0;
@@ -70,8 +71,6 @@ int main(int argc, char *argv[])
         
         memoryHoles = LinkedList_init();
         insertByStartAndEnd(memoryHoles,0,1023);
-
-
     }else{
        Buddy_Init();
     }
@@ -84,6 +83,10 @@ int main(int argc, char *argv[])
     perf = fopen("scheduler.log", "w");
     fprintf(perf, "#At time x process y state arr w total z remain y wait k\n");
     fclose(perf);
+
+    mem_log = fopen("memory.log", "w");
+    fprintf(mem_log, "#At time x allocated y bytes for process z from i to j\n");
+    fclose(mem_log);
 
     printf("scheduler is working with algorithm id: %d and memory algorithm: %d\n", algoId, mem_algo_id);
     // TODO implement the scheduler :)
@@ -121,7 +124,7 @@ void algo_start()
             {
                 algo_func();
             }
-            else if (isEmpty(RQ) && *sim_state == 1) // ready queue is empty, and process generator is done sending
+            else if (isEmpty(RQ) && isEmpty(WQ) && *sim_state == 1) // ready queue is empty, and process generator is done sending
             {
                 // outputting "scheduler.perf" and then ending the simulation
                 output_performance();
@@ -319,9 +322,7 @@ void RR()
 
 bool allocateMemory(Process *p)
 {
-
     LL_Node *curr = memoryHoles->head;
-    printf("curr data start %d\n",curr->data->start);
     while (curr != NULL) {
 
         Hole *hole = (Hole *)(curr->data);
@@ -329,7 +330,8 @@ bool allocateMemory(Process *p)
         if (block_size >= p->memsize) {
             // allocate memory block
             p->memBlock.start =  hole->start;
-            p->memBlock.end = hole->start + p->memsize;
+            p->memBlock.end = hole->start + p->memsize - 1;
+            p->memBlock.size = p->memsize;
 
             hole->start += p->memsize;
             if (hole->start > hole->end) {
@@ -350,8 +352,8 @@ void freeMemory(Process *p)
     // insert new node into memoryHoles linked list
     LL_Node* new_node = insertByStartAndEnd(memoryHoles,p->memBlock.start,p->memBlock.end);
     Hole *curr_hole = (Hole*)(new_node->data);
-    // merge with next node if it is free
-     
+    
+    // merge with next node if it is free 
     if (new_node->next != NULL) {
         Hole *next_hole = (Hole*)(new_node->next->data);
         if (next_hole->start == curr_hole->end + 1) {
@@ -375,9 +377,19 @@ bool First_Fit(Process *p)
     // Allocate memory using first fit algorithm
     bool result = allocateMemory(p);
     if (result) {
-        printf("Allocated memory for process %d starting at address %d & ending at address %d\n", p->pid, p->memBlock.start,p->memBlock.end);
+        printf("Allocated memory for process %d starting at address %d & ending at address %d\n", p->id, p->memBlock.start,p->memBlock.end);
+         //printing in the memory log file
+        mem_log = fopen("memory.log", "a");
+        fprintf(mem_log, "At time %d allocated %d bytes for process %d from %d to %d\n",
+            getClk(),
+            p->memBlock.size,
+            p->id,
+            p->memBlock.start,
+            p->memBlock.end
+    );
+    fclose(mem_log);
     } else {
-        printf("Unable to allocate memory for process %d\n", p->pid);
+        printf("Unable to allocate memory for process %d\n", p->id);
     }
     return result;
 }
@@ -432,14 +444,17 @@ void Partition(int cur_hole_idx,int needed_hole_idx){
 }
 bool Buddy(Process* proc)
 {
-    printf("Entered Buddy\n");
-     int Original_Size=proc->memsize;
+    int Original_Size=proc->memsize;
     int Needed_Hole_idx=ceil(log2(Original_Size));
     int cur_hole_idx=Needed_Hole_idx;
+    if(cur_hole_idx >= 9)
+    {
+        printf("Process requires more than 256 bytes!\n");
+        return false;
+    }
     printf("cur idxx %d,Needed %d, %d\n",cur_hole_idx,Needed_Hole_idx,All_Holes[cur_hole_idx]->size);
 
     while (cur_hole_idx<9 && isLLEmpty(All_Holes[cur_hole_idx])){
-
         cur_hole_idx++;
     }
     if(cur_hole_idx == 9)
@@ -453,11 +468,18 @@ bool Buddy(Process* proc)
     All_Holes[Needed_Hole_idx]->head=All_Holes[Needed_Hole_idx]->head->next;
     All_Holes[Needed_Hole_idx]->size-=1;
     proc->memBlock=*Allocated_Block;
-    //  for (int i=0; i<9; i++){
-    //     if (All_Holes[i]->Head!=NULL){
-    //         printf("%d ----> %d\n",i,All_Holes[i]->Head->start);
-    //     }
-    // }
+    
+    //printing in the memory log file
+    mem_log = fopen("memory.log", "a");
+    fprintf(mem_log, "At time %d allocated %d bytes for process %d from %d to %d\n",
+            getClk(),
+            Allocated_Block->size,
+            proc->id,
+            Allocated_Block->start,
+            Allocated_Block->end
+    );
+    fclose(mem_log);
+
     free(temp);
     return true;
 }
@@ -578,6 +600,7 @@ void Termination_SIG(int signnum)
             TA,
             WeTA);
     fclose(log_file);
+
         //deallocate the memory
         LL_Node *removed = newLLNode(curProc->memBlock.start, curProc->memBlock.end);
         if(mem_algo_id == 1){
@@ -585,6 +608,17 @@ void Termination_SIG(int signnum)
         }else{
             Buddy_dealloction(removed);
         }
+        //printing in the memory log file
+    mem_log = fopen("memory.log", "a");
+    fprintf(mem_log, "At time %d freed %d bytes from process %d from %d to %d\n",
+            getClk(),
+            curProc->memBlock.size,
+            curProc->id,
+            curProc->memBlock.start,
+            curProc->memBlock.end
+    );
+    fclose(mem_log);
+
     free(curProc);
     curProc = NULL;
     switched = true;
@@ -609,8 +643,9 @@ void Termination_SIG(int signnum)
             {
                 enqueue(RQ, p);
             }
-
         }
+        else
+            break;
     }
     else
     {
@@ -630,6 +665,8 @@ void Termination_SIG(int signnum)
                 enqueue(RQ, p);
             }
         }
+        else 
+            break;
     }
     }
 }
@@ -661,6 +698,7 @@ void newProc_arrive(int signnum)
         if (mem_algo_id == 1)
         {
             allocation_result = First_Fit(p);
+            printf("allocation result %d \n",allocation_result);
         }
         else
         {
